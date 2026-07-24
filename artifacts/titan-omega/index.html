@@ -9,6 +9,9 @@
     <meta name="theme-color" content="#080B12">
     <title>TITAN Ω — Computational Workspace</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%23C9A468' stroke-width='4'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%2357D9C4' stroke-width='3'/%3E%3Ccircle cx='50' cy='50' r='6' fill='%23E8C888'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         /* ================================================================
            TITAN Ω — DESIGN SYSTEM (enhanced)
@@ -130,8 +133,8 @@
             --glow-brass: 0 0 0 1px rgba(201, 164, 104, 0.35), 0 0 24px -4px rgba(201, 164, 104, 0.45);
             --glow-cyan: 0 0 0 1px rgba(87, 217, 196, 0.35), 0 0 24px -4px rgba(87, 217, 196, 0.5);
             --glow-violet: 0 0 0 1px rgba(139, 133, 224, 0.35), 0 0 24px -4px rgba(139, 133, 224, 0.5);
-            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "SF Pro Display", Roboto, "Helvetica Neue", Arial, sans-serif;
-            --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", Consolas, "Roboto Mono", Menlo, monospace;
+            --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "SF Pro Display", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", Consolas, "Roboto Mono", Menlo, monospace;
             --fs-2xs: 10.5px;
             --fs-xs: 11.5px;
             --fs-sm: 12.5px;
@@ -198,6 +201,71 @@
             --ink-4: #181B24;
             --glass-bg: rgba(10, 11, 15, 0.72);
             --glass-border: rgba(201, 164, 104, 0.14);
+        }
+        [data-theme="neon"] {
+            --ink: #06030F;
+            --ink-2: #0A0518;
+            --ink-3: #100822;
+            --ink-4: #180D30;
+            --brass: #FF2DF7;
+            --brass-bright: #FF80FA;
+            --brass-dim: #8A1A86;
+            --cyan: #00F5FF;
+            --cyan-bright: #80FAFF;
+            --violet: #7B2FFF;
+            --violet-bright: #A87BFF;
+            --accent: var(--brass);
+            --accent-bright: var(--brass-bright);
+            --accent-2: var(--cyan);
+            --accent-3: var(--violet);
+            --glass-border: rgba(255, 45, 247, 0.22);
+            --glass-border-soft: rgba(0, 245, 255, 0.08);
+            --glow-brass: 0 0 0 1px rgba(255, 45, 247, 0.4), 0 0 30px -4px rgba(255, 45, 247, 0.6);
+            --glow-cyan: 0 0 0 1px rgba(0, 245, 255, 0.4), 0 0 30px -4px rgba(0, 245, 255, 0.6);
+        }
+        [data-theme="matrix"] {
+            --ink: #000300;
+            --ink-2: #001100;
+            --ink-3: #001800;
+            --ink-4: #002200;
+            --brass: #00FF41;
+            --brass-bright: #80FF90;
+            --brass-dim: #007A1F;
+            --cyan: #00DD88;
+            --cyan-bright: #80FFCC;
+            --violet: #00BBFF;
+            --violet-bright: #80DDFF;
+            --text-1: #C0FFC0;
+            --text-2: #70B870;
+            --text-3: #3A6E3A;
+            --accent: var(--brass);
+            --accent-bright: var(--brass-bright);
+            --accent-2: var(--cyan);
+            --accent-3: var(--violet);
+            --glass-border: rgba(0, 255, 65, 0.18);
+            --glass-border-soft: rgba(0, 255, 65, 0.06);
+            --hairline: rgba(0, 255, 65, 0.08);
+            --hairline-strong: rgba(0, 255, 65, 0.16);
+            --glow-brass: 0 0 0 1px rgba(0, 255, 65, 0.4), 0 0 24px -4px rgba(0, 255, 65, 0.5);
+        }
+        [data-theme="forest"] {
+            --ink: #050D08;
+            --ink-2: #091510;
+            --ink-3: #0E1E16;
+            --ink-4: #142A1E;
+            --brass: #7EC850;
+            --brass-bright: #A8E878;
+            --brass-dim: #3E6428;
+            --cyan: #50D4A0;
+            --cyan-bright: #88ECC4;
+            --violet: #C8A050;
+            --violet-bright: #E8C888;
+            --accent: var(--brass);
+            --accent-bright: var(--brass-bright);
+            --accent-2: var(--cyan);
+            --accent-3: var(--violet);
+            --glass-border: rgba(126, 200, 80, 0.18);
+            --glow-brass: 0 0 0 1px rgba(126, 200, 80, 0.35), 0 0 24px -4px rgba(126, 200, 80, 0.45);
         }
         [data-motion="reduced"] *,
         [data-motion="reduced"] *::before,
@@ -2564,6 +2632,178 @@
             font-size: var(--fs-sm);
         }
 
+        /* ================================================================
+           POMODORO TIMER APP
+        ================================================================ */
+        .pomodoro-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 28px; padding: 24px; }
+        .pomodoro-ring { position: relative; width: 200px; height: 200px; }
+        .pomodoro-ring canvas { position: absolute; inset: 0; }
+        .pomodoro-time { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .pomodoro-time .pom-digits { font-family: var(--font-mono); font-size: 38px; font-weight: 600; color: var(--text-1); letter-spacing: 2px; }
+        .pomodoro-time .pom-mode { font-size: var(--fs-xs); color: var(--text-3); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px; }
+        .pom-sessions { display: flex; gap: 8px; }
+        .pom-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--hairline-strong); transition: background var(--dur-med); }
+        .pom-dot.done { background: var(--accent-2); box-shadow: 0 0 8px var(--accent-2); }
+        .pom-controls { display: flex; gap: 12px; }
+
+        /* ================================================================
+           WORLD CLOCK APP
+        ================================================================ */
+        .world-clock-wrap { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+        .world-clock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; padding: 20px; overflow-y: auto; flex: 1; }
+        .clock-card { background: var(--ink-3); border: 1px solid var(--hairline); border-radius: var(--r-md); padding: 16px; display: flex; flex-direction: column; gap: 8px; cursor: default; transition: border-color var(--dur-fast), box-shadow var(--dur-fast); }
+        .clock-card:hover { border-color: var(--glass-border); box-shadow: var(--shadow-sm); }
+        .clock-city { font-size: var(--fs-sm); font-weight: 600; color: var(--text-1); }
+        .clock-zone { font-size: var(--fs-2xs); color: var(--text-3); }
+        .clock-time { font-family: var(--font-mono); font-size: 28px; font-weight: 600; color: var(--accent); letter-spacing: 1px; }
+        .clock-date { font-size: var(--fs-2xs); color: var(--text-2); }
+        .clock-day-bar { height: 3px; border-radius: 2px; background: var(--hairline); margin-top: 4px; overflow: hidden; }
+        .clock-day-fill { height: 100%; background: var(--accent-2); border-radius: 2px; transition: width 1s linear; }
+
+        /* ================================================================
+           MARKDOWN EDITOR APP
+        ================================================================ */
+        .md-editor-wrap { display: flex; flex: 1; overflow: hidden; }
+        .md-editor-pane { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .md-editor-pane + .md-editor-pane { border-left: 1px solid var(--hairline); }
+        .md-pane-header { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--hairline); font-size: var(--fs-xs); color: var(--text-3); flex: none; }
+        .md-textarea { flex: 1; background: transparent; border: none; outline: none; padding: 16px; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.7; color: var(--text-1); resize: none; overflow-y: auto; }
+        .md-preview { flex: 1; padding: 16px 20px; overflow-y: auto; font-size: 13px; line-height: 1.75; color: var(--text-2); }
+        .md-preview h1, .md-preview h2, .md-preview h3 { color: var(--text-1); margin: 16px 0 8px; font-weight: 600; }
+        .md-preview h1 { font-size: 22px; border-bottom: 1px solid var(--hairline); padding-bottom: 8px; }
+        .md-preview h2 { font-size: 17px; }
+        .md-preview h3 { font-size: 14px; }
+        .md-preview p { margin: 0 0 12px; }
+        .md-preview code { font-family: var(--font-mono); font-size: 11.5px; background: var(--ink-4); padding: 2px 5px; border-radius: 4px; color: var(--accent-2); }
+        .md-preview pre { background: var(--ink-4); border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 12px 14px; overflow-x: auto; margin: 12px 0; }
+        .md-preview pre code { background: none; padding: 0; }
+        .md-preview blockquote { border-left: 3px solid var(--accent); margin: 0 0 12px; padding: 4px 14px; color: var(--text-3); font-style: italic; }
+        .md-preview ul, .md-preview ol { padding-left: 20px; margin: 0 0 12px; }
+        .md-preview li { margin-bottom: 4px; }
+        .md-preview hr { border: none; border-top: 1px solid var(--hairline); margin: 20px 0; }
+        .md-preview a { color: var(--accent-2); text-decoration: underline; }
+        .md-preview strong { color: var(--text-1); font-weight: 600; }
+        .md-preview em { font-style: italic; }
+        .md-preview table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+        .md-preview th { background: var(--ink-4); border: 1px solid var(--hairline); padding: 6px 10px; text-align: left; color: var(--text-1); font-weight: 600; }
+        .md-preview td { border: 1px solid var(--hairline); padding: 6px 10px; }
+        .md-word-count { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); padding: 0 4px; }
+
+        /* ================================================================
+           AI CHAT (COSMOS) APP
+        ================================================================ */
+        .chat-wrap { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .chat-bubble { max-width: 82%; display: flex; flex-direction: column; gap: 4px; }
+        .chat-bubble.user { align-self: flex-end; align-items: flex-end; }
+        .chat-bubble.ai { align-self: flex-start; }
+        .chat-bubble-content { padding: 10px 14px; border-radius: var(--r-md); font-size: var(--fs-sm); line-height: 1.6; }
+        .chat-bubble.user .chat-bubble-content { background: var(--accent); color: var(--text-inv); border-bottom-right-radius: 4px; font-weight: 500; }
+        .chat-bubble.ai .chat-bubble-content { background: var(--ink-3); color: var(--text-1); border: 1px solid var(--hairline); border-bottom-left-radius: 4px; }
+        .chat-bubble-meta { font-size: var(--fs-2xs); color: var(--text-3); padding: 0 4px; }
+        .chat-input-row { display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--hairline); }
+        .chat-input { flex: 1; background: var(--ink-3); border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 8px 12px; font-size: var(--fs-sm); color: var(--text-1); outline: none; font-family: var(--font-sans); resize: none; min-height: 36px; max-height: 120px; }
+        .chat-input:focus { border-color: var(--glass-border); }
+        .chat-typing { display: flex; gap: 4px; align-items: center; padding: 10px 14px; }
+        .chat-typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); animation: typing-dot 1.2s infinite ease-in-out; }
+        .chat-typing span:nth-child(2) { animation-delay: 0.2s; }
+        .chat-typing span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing-dot { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
+        .chat-ai-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--hairline); }
+        .chat-ai-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: var(--text-inv); flex: none; }
+
+        /* ================================================================
+           WEATHER APP
+        ================================================================ */
+        .weather-wrap { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+        .weather-hero { display: flex; align-items: center; justify-content: space-between; padding: 24px 28px; border-bottom: 1px solid var(--hairline); }
+        .weather-temp-big { font-family: var(--font-mono); font-size: 72px; font-weight: 300; color: var(--text-1); line-height: 1; }
+        .weather-temp-big sup { font-size: 28px; vertical-align: top; margin-top: 10px; color: var(--text-3); }
+        .weather-desc { font-size: var(--fs-md); color: var(--text-2); margin-top: 6px; }
+        .weather-city-name { font-size: var(--fs-2xl); font-weight: 600; color: var(--text-1); }
+        .weather-icon-large { font-size: 80px; line-height: 1; }
+        .weather-details { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; padding: 20px; flex: 1; }
+        .weather-detail-card { background: var(--ink-3); border: 1px solid var(--hairline); border-radius: var(--r-md); padding: 14px; }
+        .weather-detail-label { font-size: var(--fs-2xs); color: var(--text-3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+        .weather-detail-value { font-family: var(--font-mono); font-size: var(--fs-xl); font-weight: 600; color: var(--text-1); }
+        .weather-detail-unit { font-size: var(--fs-xs); color: var(--text-3); margin-left: 2px; }
+        .weather-forecast { display: flex; gap: 10px; padding: 0 20px 20px; overflow-x: auto; }
+        .weather-forecast-day { background: var(--ink-3); border: 1px solid var(--hairline); border-radius: var(--r-md); padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 80px; }
+        .weather-forecast-day .day-name { font-size: var(--fs-2xs); color: var(--text-3); text-transform: uppercase; }
+        .weather-forecast-day .day-icon { font-size: 24px; }
+        .weather-forecast-day .day-temp { font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 600; color: var(--text-1); }
+        .weather-forecast-day.active { border-color: var(--glass-border); background: var(--ink-4); }
+
+        /* ================================================================
+           ENHANCED COLOR PICKER
+        ================================================================ */
+        .color-harmonies { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+        .harmony-swatch { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--hairline); cursor: default; transition: transform var(--dur-fast); }
+        .harmony-swatch:hover { transform: scale(1.15); }
+        .color-copy-row { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+        .color-copy-item { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 11px; }
+        .color-copy-label { color: var(--text-3); width: 36px; flex: none; }
+        .color-copy-value { color: var(--text-2); flex: 1; background: var(--ink-4); padding: 3px 6px; border-radius: 4px; }
+        .color-copy-btn { padding: 2px 8px; font-size: 10px; border-radius: 4px; background: var(--ink-4); border: 1px solid var(--hairline); color: var(--text-2); cursor: default; }
+        .color-copy-btn:hover { background: var(--ink-3); color: var(--text-1); }
+        .color-history-row { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px; }
+        .color-hist-dot { width: 20px; height: 20px; border-radius: 4px; border: 1px solid var(--hairline); cursor: default; }
+
+        /* ================================================================
+           ENHANCED WHITEBOARD APP
+        ================================================================ */
+        .wb-toolpanel { display: flex; flex-direction: column; gap: 4px; padding: 8px 6px; border-right: 1px solid var(--hairline); background: var(--ink-3); flex: none; }
+        .wb-tool { width: 36px; height: 36px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--text-2); display: flex; align-items: center; justify-content: center; cursor: default; font-size: 13px; transition: all var(--dur-fast); }
+        .wb-tool:hover { background: rgba(255,255,255,0.06); color: var(--text-1); }
+        .wb-tool.active { background: rgba(201,164,104,0.15); border-color: var(--glass-border); color: var(--accent); }
+        .wb-tool-sep { height: 1px; background: var(--hairline); margin: 4px 4px; }
+
+        /* ================================================================
+           ENHANCED FILE MANAGER
+        ================================================================ */
+        .fm-sidebar { width: 160px; border-right: 1px solid var(--hairline); padding: 8px; overflow-y: auto; flex: none; display: flex; flex-direction: column; gap: 2px; }
+        .fm-sidebar-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--r-sm); font-size: var(--fs-sm); color: var(--text-2); cursor: default; transition: background var(--dur-fast), color var(--dur-fast); }
+        .fm-sidebar-item:hover { background: rgba(255,255,255,0.05); color: var(--text-1); }
+        .fm-sidebar-item.active { background: rgba(201,164,104,0.12); color: var(--accent); }
+        .fm-breadcrumb { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-bottom: 1px solid var(--hairline); font-size: var(--fs-xs); color: var(--text-3); flex: none; }
+        .fm-breadcrumb span { color: var(--text-2); cursor: default; }
+        .fm-breadcrumb span:hover { color: var(--text-1); }
+        .fm-breadcrumb .sep { color: var(--text-3); }
+        .fm-file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; padding: 12px; overflow-y: auto; align-content: start; }
+        .fm-file-item { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 6px; border-radius: var(--r-md); border: 1px solid transparent; cursor: default; text-align: center; transition: all var(--dur-fast); }
+        .fm-file-item:hover { background: rgba(255,255,255,0.05); border-color: var(--hairline); }
+        .fm-file-item.selected { background: rgba(87,217,196,0.08); border-color: rgba(87,217,196,0.3); }
+        .fm-file-icon { font-size: 32px; line-height: 1; }
+        .fm-file-name { font-size: 10.5px; color: var(--text-1); word-break: break-word; line-height: 1.3; }
+        .fm-file-size { font-size: 9px; color: var(--text-3); font-family: var(--font-mono); }
+        .fm-preview { width: 220px; border-left: 1px solid var(--hairline); padding: 16px; overflow-y: auto; flex: none; display: flex; flex-direction: column; gap: 10px; }
+        .fm-preview-icon { font-size: 52px; text-align: center; }
+        .fm-preview-name { font-size: var(--fs-md); font-weight: 600; color: var(--text-1); text-align: center; word-break: break-word; }
+        .fm-preview-meta { font-size: var(--fs-xs); color: var(--text-3); text-align: center; }
+        .fm-preview-content { font-family: var(--font-mono); font-size: 11px; color: var(--text-2); background: var(--ink-4); border-radius: var(--r-sm); padding: 10px; flex: 1; overflow-y: auto; white-space: pre-wrap; line-height: 1.5; }
+        .fm-status { display: flex; align-items: center; gap: 12px; padding: 6px 14px; border-top: 1px solid var(--hairline); font-size: var(--fs-2xs); color: var(--text-3); flex: none; }
+
+        /* ================================================================
+           ENHANCED SYSTEM MONITOR
+        ================================================================ */
+        .sysmon-wrap { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+        .sysmon-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 16px; }
+        .sysmon-gauge { background: var(--ink-3); border: 1px solid var(--hairline); border-radius: var(--r-md); padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+        .sysmon-gauge-label { font-size: var(--fs-2xs); color: var(--text-3); text-transform: uppercase; letter-spacing: 0.1em; }
+        .sysmon-gauge-value { font-family: var(--font-mono); font-size: 26px; font-weight: 600; color: var(--text-1); line-height: 1; }
+        .sysmon-gauge-sub { font-size: var(--fs-xs); color: var(--text-3); }
+        .sysmon-bar { height: 4px; background: var(--hairline); border-radius: 2px; overflow: hidden; margin-top: 4px; }
+        .sysmon-bar-fill { height: 100%; border-radius: 2px; transition: width 0.8s ease; }
+        .sysmon-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px 16px; }
+        .sysmon-chart-card { background: var(--ink-3); border: 1px solid var(--hairline); border-radius: var(--r-md); padding: 14px; }
+        .sysmon-chart-title { font-size: var(--fs-xs); color: var(--text-2); font-weight: 600; margin-bottom: 8px; }
+        .sysmon-process-list { flex: 1; overflow-y: auto; padding: 0 16px 16px; }
+        .sysmon-process-header { display: grid; grid-template-columns: 1fr 60px 60px 60px; gap: 8px; padding: 6px 10px; font-size: var(--fs-2xs); color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--hairline); margin-bottom: 4px; }
+        .sysmon-process-row { display: grid; grid-template-columns: 1fr 60px 60px 60px; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); font-size: var(--fs-xs); transition: background var(--dur-fast); }
+        .sysmon-process-row:hover { background: rgba(255,255,255,0.04); }
+        .sysmon-process-name { color: var(--text-1); font-family: var(--font-mono); }
+        .sysmon-process-val { text-align: right; color: var(--text-2); font-family: var(--font-mono); }
+
         /* Fullscreen button icon override */
         #fullscreen-btn svg {
             transition: transform 0.2s ease;
@@ -2733,18 +2973,22 @@
             author: "Juan louw Greyling",
             email: "juanlouw.greyling@gmail.com",
             defaultTheme: "midnight",
-            themes: ["midnight", "aurora", "solar", "obsidian"],
+            themes: ["midnight", "aurora", "solar", "obsidian", "neon", "matrix", "forest"],
+            wallpaperStyles: ["nebula", "grid-field", "aurora", "constellation", "matrix-rain", "plasma", "geometric"],
             bootSteps: [
+                "Initializing core systems…",
                 "Calibrating instrumentation…",
                 "Mounting window manager…",
                 "Charting architecture atlas…",
                 "Weaving knowledge graph…",
                 "Warming cognition regions…",
                 "Synchronizing simulation clock…",
-                "Loading code editor…",
+                "Loading applications…",
+                "Establishing presence channels…",
+                "Finalizing workspace…",
                 "Ready."
             ],
-            bootDuration: 2400,
+            bootDuration: 3200,
             window: {
                 defaultMinWidth: 360,
                 defaultMinHeight: 240,
@@ -4107,7 +4351,7 @@ const WindowGeometry = (() => {
                 });
             }
             cycleWallpaper() {
-                const styles = ["nebula", "grid-field", "aurora"];
+                const styles = TITAN_CONFIG.wallpaperStyles;
                 const next = styles[(styles.indexOf(StateManager.get("wallpaperStyle")) + 1) % styles.length];
                 StateManager.set("wallpaperStyle", next);
                 NotificationCenter.push({ type: "info", title: "Wallpaper updated", message: `Style: ${next}`,
@@ -8577,109 +8821,450 @@ const WindowGeometry = (() => {
         /* ==== js/apps/terminal.js ==== */
         "use strict";
         /******************************************************************
-         * [APP:TERMINAL] — Command-line interface
+         * [APP:TERMINAL] — Command-line interface (enhanced)
          ******************************************************************/
         const TerminalApp = (() => {
-            const COMMANDS = {
-                help() { return "Available commands: help, echo <text>, date, ls, clear, whoami, uptime, neofetch, joke, fortune, calc <expr>"; },
-                echo(args) { return args.join(" "); },
-                date() { return new Date().toString(); },
-                ls() { return "Documents  Downloads  Pictures  Music  Videos  code.js  readme.md"; },
-                clear() { return "__CLEAR__"; },
-                whoami() { return "user@titan"; },
-                uptime() { const ms = Date.now() - (StateManager.get("bootedAt") || Date.now());
-                    const s = Math.floor(ms / 1000);
-                    const m = Math.floor(s / 60);
-                    const h = Math.floor(m / 60);
-                    return `up ${h}h ${m % 60}m`; },
-                neofetch() {
-                    return `
-        ██████████████████  user@titan
-        ██████████████████  OS: TITAN Ω ${TITAN_CONFIG.version}
-        ██████████████████  Kernel: Vanilla JS
-        ██████████████████  Uptime: ${COMMANDS.uptime()}
-        ██████████████████  Shell: Terminal v1.0
-        ██████████████████  Resolution: ${window.innerWidth}x${window.innerHeight}
-                    `.trim();
-                },
-                joke() {
-                    const jokes = [
-                        "Why do programmers prefer dark mode? Because light attracts bugs.",
-                        "What do you call a fake noodle? An impasta.",
-                        "Why was the JavaScript developer sad? Because he didn't know how to 'null' his feelings.",
-                        "How many programmers does it take to change a light bulb? None — that's a hardware problem."
-                    ];
-                    return Utils.pick(jokes);
-                },
-                fortune() {
-                    const fortunes = [
-                        "The best way to predict the future is to simulate it.",
-                        "Every abstraction leaks eventually.",
-                        "Simplicity is a prerequisite for reliability.",
-                        "The map is not the territory.",
-                        "Emergence is what happens when simple rules stop being simple."
-                    ];
-                    return Utils.pick(fortunes);
-                },
-                calc(args) {
-                    try {
-                        const expr = args.join(" ");
-                        const sanitized = expr.replace(/[^0-9+\-*/. ]/g, "");
-                        const val = Function('"use strict"; return (' + sanitized + ')')();
-                        if (typeof val === "number" && isFinite(val)) return String(val);
-                        return "Error";
-                    } catch (e) { return "Error"; }
+            // Virtual filesystem
+            const VFS = {
+                "/": { type: "dir", children: ["home", "etc", "var", "tmp", "usr"] },
+                "/home": { type: "dir", children: ["user"] },
+                "/home/user": { type: "dir", children: ["Documents", "Downloads", "Pictures", "Music", "code", "notes.txt", "readme.md", ".profile"] },
+                "/home/user/Documents": { type: "dir", children: ["report.md", "budget.csv", "thesis.txt"] },
+                "/home/user/Downloads": { type: "dir", children: ["titan-v0.3.2.html", "dataset.json", "archive.zip"] },
+                "/home/user/Pictures": { type: "dir", children: ["screenshot.png", "wallpaper.jpg", "profile.png"] },
+                "/home/user/Music": { type: "dir", children: ["ambient.mp3", "chillwave.flac", "synthwave.ogg"] },
+                "/home/user/code": { type: "dir", children: ["main.js", "utils.js", "index.html", "style.css"] },
+                "/home/user/notes.txt": { type: "file", content: "Remember to update documentation\nCheck simulation parameters\nReview knowledge graph nodes" },
+                "/home/user/readme.md": { type: "file", content: "# TITAN Ω Workspace\n\nA computational environment for deep thinking.\n\n## Features\n- Window manager\n- 3D visualizations\n- Simulation lab" },
+                "/home/user/.profile": { type: "file", content: 'export PS1="user@titan:~$ "\nexport EDITOR=nano\nexport LANG=en_US.UTF-8' },
+                "/home/user/Documents/report.md": { type: "file", content: "# Research Report\n\nAnalysis of emergent systems..." },
+                "/home/user/Documents/budget.csv": { type: "file", content: "Category,Amount\nR&D,42000\nOps,18000\nInfra,9500" },
+                "/home/user/code/main.js": { type: "file", content: "// TITAN Ω entry point\nconst TITAN = { version: '0.3.2', codename: 'Observatory' };\nconsole.log(`TITAN ${TITAN.version} ready`);" },
+                "/etc": { type: "dir", children: ["hosts", "hostname", "motd"] },
+                "/etc/hostname": { type: "file", content: "titan-omega" },
+                "/etc/motd": { type: "file", content: "Welcome to TITAN Ω — Computational Workspace\nType 'help' for available commands." },
+                "/tmp": { type: "dir", children: [] },
+                "/usr": { type: "dir", children: ["bin", "lib", "share"] },
+                "/var": { type: "dir", children: ["log"] },
+            };
+
+            function resolvePath(cwd, p) {
+                if (!p) return cwd;
+                if (p.startsWith("/")) return "/" + p.split("/").filter(Boolean).join("/");
+                const parts = (cwd + "/" + p).split("/").filter(Boolean);
+                const resolved = [];
+                for (const part of parts) {
+                    if (part === "..") resolved.pop();
+                    else if (part !== ".") resolved.push(part);
                 }
+                return "/" + resolved.join("/");
+            }
+
+            function getNode(path) {
+                const p = path === "" ? "/" : path;
+                return VFS[p] || null;
+            }
+
+            const COLORS = {
+                dim: "rgba(92,100,128,1)",
+                info: "rgba(154,161,184,1)",
+                input: "rgba(87,217,196,0.9)",
+                error: "rgba(224,112,138,1)",
+                success: "rgba(87,217,196,1)",
+                warn: "rgba(224,169,78,1)",
+                dir: "rgba(139,133,224,1)",
+                file: "rgba(231,233,240,0.9)",
+                header: "rgba(201,164,104,1)",
             };
 
             function mount(bodyEl) {
-                const output = Utils.el("div", { class: "terminal-output" });
-                const inputWrap = Utils.el("div", { class: "terminal-input-wrap" }, [
-                    Utils.el("span", { class: "term-prompt" }, "$"),
-                    Utils.el("input", { type: "text", autocomplete: "off", spellcheck: "false",
-                        placeholder: "Type a command…" })
-                ]);
-                bodyEl.appendChild(Utils.el("div", { class: "app-root" }, [
-                    output,
-                    inputWrap
-                ]));
+                let cwd = "/home/user";
+                const cmdHistory = [];
+                let histIdx = -1;
 
-                function printLine(text, cls = "") {
-                    const line = Utils.el("div", { class: "term-line" + (cls ? " " + cls : "") });
-                    line.textContent = text;
+                const output = Utils.el("div", { class: "terminal-output" });
+                const inputWrap = Utils.el("div", { class: "terminal-input-wrap" });
+                const promptEl = Utils.el("span", { class: "term-prompt" });
+                const inputEl = Utils.el("input", { type: "text", autocomplete: "off", spellcheck: "false", placeholder: "Type a command…" });
+                inputWrap.appendChild(promptEl);
+                inputWrap.appendChild(inputEl);
+                bodyEl.appendChild(Utils.el("div", { class: "app-root" }, [output, inputWrap]));
+
+                function updatePrompt() {
+                    const display = cwd.replace("/home/user", "~");
+                    promptEl.textContent = `user@titan:${display}$ `;
+                }
+                updatePrompt();
+
+                function printRaw(html) {
+                    const line = document.createElement("div");
+                    line.className = "term-line";
+                    line.innerHTML = html;
                     output.appendChild(line);
                     output.scrollTop = output.scrollHeight;
                 }
 
-                function processCommand(cmd) {
-                    const parts = cmd.trim().split(/\s+/);
+                function print(text, color = COLORS.info) {
+                    const escaped = Utils.escapeHtml(text);
+                    printRaw(`<span style="color:${color}">${escaped}</span>`);
+                }
+
+                function printPair(label, value, lc = COLORS.dim, vc = COLORS.info) {
+                    printRaw(`<span style="color:${lc}">${Utils.escapeHtml(label)}</span><span style="color:${vc}">${Utils.escapeHtml(value)}</span>`);
+                }
+
+                function printInput(cmd) {
+                    const display = cwd.replace("/home/user", "~");
+                    printRaw(`<span style="color:${COLORS.success}">user@titan</span><span style="color:${COLORS.dim}">:</span><span style="color:${COLORS.dir}">${Utils.escapeHtml(display)}</span><span style="color:${COLORS.dim}">$ </span><span style="color:${COLORS.file}">${Utils.escapeHtml(cmd)}</span>`);
+                }
+
+                const COMMANDS = {
+                    help(args) {
+                        const cmds = [
+                            ["help [cmd]","Show this help or detail for a command"],["ls [-la] [path]","List directory contents"],
+                            ["cd [path]","Change directory"],["pwd","Print working directory"],["cat <file>","Print file contents"],
+                            ["echo <text>","Print text"],["clear","Clear terminal"],["whoami","Current user"],["uname","System info"],
+                            ["date","Current date and time"],["uptime","System uptime"],["ps","Running processes"],
+                            ["neofetch","System information card"],["tree","Directory tree"],["env","Environment variables"],
+                            ["history","Command history"],["calc <expr>","Evaluate math expression"],["banner <text>","ASCII banner"],
+                            ["joke","Random joke"],["fortune","Words of wisdom"],["cowsay <text>","Cowsay art"],
+                            ["ping <host>","Ping a host"],["curl <url>","Fetch a URL (simulated)"],["man <cmd>","Manual for a command"],
+                            ["matrix","Go full matrix"],["colors","Color palette test"],["alias","Show aliases"],
+                            ["sl","Easter egg"],["exit","Close terminal window"]
+                        ];
+                        printRaw(`<span style="color:${COLORS.header};font-weight:600">TITAN Ω Terminal v2.0 — Available Commands</span>`);
+                        cmds.forEach(([c, d]) => printRaw(`  <span style="color:${COLORS.success};min-width:160px;display:inline-block">${c.padEnd(24)}</span><span style="color:${COLORS.dim}">${d}</span>`));
+                    },
+                    ls(args) {
+                        const showAll = args.includes("-a") || args.includes("-la") || args.includes("-al");
+                        const longFmt = args.includes("-l") || args.includes("-la") || args.includes("-al");
+                        const pathArg = args.find(a => !a.startsWith("-")) || "";
+                        const target = resolvePath(cwd, pathArg);
+                        const node = getNode(target);
+                        if (!node) { print(`ls: ${target}: No such file or directory`, COLORS.error); return; }
+                        if (node.type === "file") { print(target.split("/").pop(), COLORS.file); return; }
+                        const items = (node.children || []).filter(c => showAll || !c.startsWith("."));
+                        if (longFmt) {
+                            print("total " + items.length, COLORS.dim);
+                            items.forEach(name => {
+                                const childPath = (target === "/" ? "" : target) + "/" + name;
+                                const child = getNode(childPath);
+                                const isDir = child?.type === "dir";
+                                const perms = isDir ? "drwxr-xr-x" : "-rw-r--r--";
+                                const size = isDir ? "4096" : String(Math.floor(Math.random() * 8000 + 512));
+                                const date = "Jul 24 09:42";
+                                printRaw(`<span style="color:${COLORS.dim}">${perms} 1 user user ${size.padStart(6)} ${date} </span><span style="color:${isDir ? COLORS.dir : COLORS.file}">${name}${isDir ? "/" : ""}</span>`);
+                            });
+                        } else {
+                            const parts = items.map(name => {
+                                const childPath = (target === "/" ? "" : target) + "/" + name;
+                                const child = getNode(childPath);
+                                const isDir = child?.type === "dir";
+                                return `<span style="color:${isDir ? COLORS.dir : COLORS.file}">${name}${isDir ? "/  " : "  "}</span>`;
+                            });
+                            printRaw(parts.join(""));
+                        }
+                    },
+                    cd(args) {
+                        const target = args[0] || "/home/user";
+                        const resolved = target === "~" ? "/home/user" : resolvePath(cwd, target);
+                        const node = getNode(resolved);
+                        if (!node) { print(`cd: ${target}: No such file or directory`, COLORS.error); return; }
+                        if (node.type !== "dir") { print(`cd: ${target}: Not a directory`, COLORS.error); return; }
+                        cwd = resolved;
+                        updatePrompt();
+                    },
+                    pwd() { print(cwd, COLORS.success); },
+                    cat(args) {
+                        if (!args[0]) { print("cat: missing file operand", COLORS.error); return; }
+                        const target = resolvePath(cwd, args[0]);
+                        const node = getNode(target);
+                        if (!node) { print(`cat: ${args[0]}: No such file or directory`, COLORS.error); return; }
+                        if (node.type === "dir") { print(`cat: ${args[0]}: Is a directory`, COLORS.error); return; }
+                        (node.content || "").split("\n").forEach(l => print(l, COLORS.info));
+                    },
+                    echo(args) { print(args.join(" "), COLORS.info); },
+                    clear() { output.innerHTML = ""; },
+                    whoami() { print("user", COLORS.success); },
+                    uname(args) {
+                        const full = args.includes("-a");
+                        if (full) print(`TITAN Ω ${TITAN_CONFIG.version} (${TITAN_CONFIG.codename}) JS-Engine Vanilla 0.0.0 ${new Date().toDateString()} x86_64`, COLORS.info);
+                        else print("TITAN Ω", COLORS.info);
+                    },
+                    date() { print(new Date().toString(), COLORS.info); },
+                    uptime() {
+                        const ms = Date.now() - (StateManager.get("bootedAt") || Date.now());
+                        const s = Math.floor(ms / 1000), m = Math.floor(s / 60), h = Math.floor(m / 60);
+                        const load = (Math.random() * 0.6 + 0.1).toFixed(2);
+                        print(` up ${h}h ${m % 60}m ${s % 60}s,  1 user,  load average: ${load}, ${(+load + 0.1).toFixed(2)}, ${(+load + 0.2).toFixed(2)}`, COLORS.info);
+                    },
+                    ps() {
+                        const processes = [
+                            ["PID","TTY","TIME","CMD"],["1","?","00:00:01","init"],
+                            ["42","pts/0","00:00:00","bash"],["99","pts/0","00:00:12","window-mgr"],
+                            ["137","pts/0","00:00:04","dock"],["144","pts/0","00:00:00","topbar"],
+                            ["200","pts/0","00:01:14","renderer3d"],["256","pts/0","00:00:00","ps"]
+                        ];
+                        processes.forEach(([pid, tty, time, cmd]) => {
+                            const isHeader = pid === "PID";
+                            printRaw(`<span style="color:${isHeader ? COLORS.header : COLORS.dim}">${pid.padEnd(7)}</span><span style="color:${isHeader ? COLORS.header : COLORS.dim}">${tty.padEnd(8)}</span><span style="color:${isHeader ? COLORS.header : COLORS.dim}">${time.padEnd(10)}</span><span style="color:${isHeader ? COLORS.header : COLORS.success}">${cmd}</span>`);
+                        });
+                    },
+                    neofetch() {
+                        const ms = Date.now() - (StateManager.get("bootedAt") || Date.now());
+                        const m = Math.floor(ms / 60000), h = Math.floor(m / 60);
+                        const art = [
+                            "   ████████████   ",
+                            "  ██  TITAN  ██  ",
+                            " ██    Ω      ██ ",
+                            "██   ──────   ██  ",
+                            " ██  ██████  ██  ",
+                            "  ██████████    ",
+                            "   ████████    ",
+                        ];
+                        const info = [
+                            `<span style="color:${COLORS.success};font-weight:600">user</span><span style="color:${COLORS.dim}">@</span><span style="color:${COLORS.success};font-weight:600">titan</span>`,
+                            `<span style="color:${COLORS.dim}">─────────────────────</span>`,
+                            `<span style="color:${COLORS.header}">OS:</span>       TITAN Ω ${TITAN_CONFIG.version} (${TITAN_CONFIG.codename})`,
+                            `<span style="color:${COLORS.header}">Kernel:</span>   Vanilla JS Engine`,
+                            `<span style="color:${COLORS.header}">Uptime:</span>   ${h}h ${m % 60}m`,
+                            `<span style="color:${COLORS.header}">Shell:</span>    TITAN Terminal v2.0`,
+                            `<span style="color:${COLORS.header}">Display:</span>  ${window.innerWidth}x${window.innerHeight} @${Math.round(window.devicePixelRatio || 1)}x`,
+                            `<span style="color:${COLORS.header}">Apps:</span>     ${AppRegistry.list().length} registered`,
+                            `<span style="color:${COLORS.header}">Windows:</span>  ${WindowManager.windows.size} open`,
+                            `<span style="color:${COLORS.header}">Theme:</span>    ${StateManager.get("theme") || "midnight"}`,
+                        ];
+                        const rows = Math.max(art.length, info.length);
+                        for (let i = 0; i < rows; i++) {
+                            const a = `<span style="color:${COLORS.header}">${art[i] || "                   "}</span>`;
+                            const d = info[i] ? `  <span style="color:${COLORS.info}">${info[i]}</span>` : "";
+                            printRaw(a + d);
+                        }
+                        printRaw("");
+                        const swatches = ["#080B12","#C9A468","#57D9C4","#8B85E0","#E0708A","#E0A94E","#E7E9F0"].map(c =>
+                            `<span style="display:inline-block;width:18px;height:14px;background:${c};margin-right:2px;border-radius:2px">  </span>`).join("");
+                        printRaw(swatches);
+                    },
+                    tree(args) {
+                        const target = resolvePath(cwd, args[0] || ".");
+                        function walk(path, prefix = "") {
+                            const node = getNode(path);
+                            if (!node || node.type !== "dir") return;
+                            const items = node.children || [];
+                            items.forEach((name, i) => {
+                                const isLast = i === items.length - 1;
+                                const branch = isLast ? "└── " : "├── ";
+                                const childPath = (path === "/" ? "" : path) + "/" + name;
+                                const child = getNode(childPath);
+                                const isDir = child?.type === "dir";
+                                printRaw(`<span style="color:${COLORS.dim}">${prefix}${branch}</span><span style="color:${isDir ? COLORS.dir : COLORS.file}">${name}${isDir ? "/" : ""}</span>`);
+                                if (isDir) walk(childPath, prefix + (isLast ? "    " : "│   "));
+                            });
+                        }
+                        const rootName = target.split("/").pop() || "/";
+                        print(rootName + "/", COLORS.dir);
+                        walk(target);
+                    },
+                    env() {
+                        const vars = [
+                            ["USER","user"],["HOME","/home/user"],["PWD", cwd],["SHELL","/bin/titan"],
+                            ["LANG","en_US.UTF-8"],["TERM","xterm-256color"],["EDITOR","nano"],
+                            ["TITAN_VERSION", TITAN_CONFIG.version],["TITAN_THEME", StateManager.get("theme") || "midnight"],
+                            ["PATH","/usr/bin:/usr/local/bin:/home/user/code"]
+                        ];
+                        vars.forEach(([k, v]) => printRaw(`<span style="color:${COLORS.success}">${k}</span><span style="color:${COLORS.dim}">=</span><span style="color:${COLORS.info}">${v}</span>`));
+                    },
+                    history() {
+                        if (!cmdHistory.length) { print("No history yet.", COLORS.dim); return; }
+                        cmdHistory.forEach((c, i) => printRaw(`<span style="color:${COLORS.dim}">${String(i+1).padStart(4)}  </span><span style="color:${COLORS.info}">${Utils.escapeHtml(c)}</span>`));
+                    },
+                    calc(args) {
+                        const expr = args.join(" ");
+                        if (!expr) { print("Usage: calc <expression>", COLORS.warn); return; }
+                        try {
+                            const sanitized = expr.replace(/[^0-9+\-*/.()\s%^]/g, "").replace(/\^/g, "**");
+                            const val = Function('"use strict"; return (' + sanitized + ')')();
+                            if (typeof val === "number" && isFinite(val)) {
+                                printRaw(`<span style="color:${COLORS.dim}">${Utils.escapeHtml(expr)} = </span><span style="color:${COLORS.success};font-weight:600">${val}</span>`);
+                            } else print("Result is not a finite number", COLORS.error);
+                        } catch (e) { print("Error: " + e.message, COLORS.error); }
+                    },
+                    banner(args) {
+                        const text = (args.join(" ") || "TITAN").toUpperCase().slice(0, 8);
+                        const CHARS = { A:"01110100011111110001",B:"11110100011111010001",C:"01111100001000010011",D:"11110100011000110110",E:"11111100001111010001",F:"11111100001111000000",G:"01111100001101010011",H:"10001100011111110001",I:"11100010000100011110",J:"00110000100001010110",K:"10001101001000110001",L:"10000100001000011111",M:"10001110101010110001",N:"10001110011001110001",O:"01110100011000101110",P:"11110100011111100000",Q:"01110100011001101101",R:"11110100011111101001",S:"01111100000111000011",T:"11100010000100001000",U:"10001100011000110110",V:"10001100010101000100",W:"10001101011101110001",X:"10001010100100010001",Y:"10001010100100001000",Z:"11111000010001011111"," ":"0000000000000000000" };
+                        const rows = 5;
+                        for (let row = 0; row < rows; row++) {
+                            let line = "";
+                            for (const ch of text) {
+                                const bm = CHARS[ch] || CHARS[" "];
+                                const chW = bm.length / rows;
+                                for (let col = 0; col < chW; col++) {
+                                    line += bm[row * chW + col] === "1" ? `<span style="color:${COLORS.header}">█</span>` : " ";
+                                }
+                                line += " ";
+                            }
+                            printRaw(line);
+                        }
+                    },
+                    joke() {
+                        const jokes = [
+                            "Why do programmers prefer dark mode? Because light attracts bugs.",
+                            "Why did the JavaScript developer wear glasses? Because he couldn't C#.",
+                            "Why was the JavaScript developer sad? Because he didn't know how to 'null' his feelings.",
+                            "How many programmers does it take to change a light bulb? None — that's a hardware problem.",
+                            "A SQL query walks into a bar, sees two tables and asks: 'Can I join you?'",
+                            "Why do Java programmers wear glasses? Because they don't see sharp.",
+                            "There are 10 types of people: those who understand binary and those who don't.",
+                            "A byte walks into a bar. The bartender asks 'What'll it be?' The byte says 'Just a bit.'"
+                        ];
+                        print(Utils.pick(jokes), COLORS.success);
+                    },
+                    fortune() {
+                        const fortunes = [
+                            "The best way to predict the future is to simulate it.",
+                            "Every abstraction leaks eventually.",
+                            "Simplicity is a prerequisite for reliability.",
+                            "The map is not the territory.",
+                            "Emergence is what happens when simple rules stop being simple.",
+                            "Premature optimization is the root of all evil. — Knuth",
+                            "Any sufficiently advanced technology is indistinguishable from magic. — Clarke",
+                            "It's not a bug, it's an undocumented feature.",
+                            "The art of debugging is figuring out what you really told your program to do.",
+                            "Complex systems fail in complex ways.",
+                            "Make it work, make it right, make it fast — in that order."
+                        ];
+                        printRaw(`<span style="color:${COLORS.header}">❝</span> <span style="color:${COLORS.info};font-style:italic">${Utils.escapeHtml(Utils.pick(fortunes))}</span>`);
+                    },
+                    cowsay(args) {
+                        const msg = args.join(" ") || "Moo!";
+                        const top = "_".repeat(msg.length + 2);
+                        const bot = "-".repeat(msg.length + 2);
+                        printRaw(`<span style="color:${COLORS.success}"> ${top}\n&lt; ${Utils.escapeHtml(msg)} &gt;\n ${bot}\n        \\   ^__^\n         \\  (oo)\\_______\n            (__)\\       )\\/\\\n                ||----w |\n                ||     ||</span>`);
+                    },
+                    ping(args) {
+                        const host = args[0] || "localhost";
+                        printRaw(`<span style="color:${COLORS.info}">PING ${Utils.escapeHtml(host)}: 56 bytes of data</span>`);
+                        let i = 0;
+                        const iv = setInterval(() => {
+                            const ms = (Math.random() * 12 + 2).toFixed(3);
+                            printRaw(`<span style="color:${COLORS.success}">64 bytes from ${Utils.escapeHtml(host)}: icmp_seq=${i} ttl=64 time=${ms} ms</span>`);
+                            if (++i >= 4) { clearInterval(iv); print(`--- ${host} ping statistics ---\n4 packets transmitted, 4 received, 0% packet loss`, COLORS.dim); }
+                        }, 400);
+                    },
+                    curl(args) {
+                        const url = args[0] || "";
+                        if (!url) { print("Usage: curl <url>", COLORS.warn); return; }
+                        print(`> GET ${url} HTTP/1.1`, COLORS.dim);
+                        print(`< HTTP/1.1 200 OK`, COLORS.success);
+                        print(`< Content-Type: application/json`, COLORS.dim);
+                        print(`< X-Powered-By: TITAN Ω`, COLORS.dim);
+                        print(`{"status":"ok","message":"Simulated response from TITAN Ω","timestamp":${Date.now()}}`, COLORS.info);
+                    },
+                    man(args) {
+                        const cmd = args[0];
+                        if (!cmd) { print("What manual page do you want?", COLORS.warn); return; }
+                        const manuals = {
+                            ls: "ls — list directory contents\n\nUSAGE: ls [-la] [path]\n\nFLAGS:\n  -l  long format with permissions and sizes\n  -a  show hidden files (starting with .)",
+                            cat: "cat — concatenate and print files\n\nUSAGE: cat <file>\n\nPrints the contents of the specified file to the terminal.",
+                            cd: "cd — change directory\n\nUSAGE: cd [path]\n\nChanges current working directory. Use ~ for home, .. to go up.",
+                            grep: "grep — search text patterns\n\nUSAGE: grep <pattern> <file>\n\nNote: grep is simulated in TITAN Ω terminal.",
+                        };
+                        const content = manuals[cmd] || `No manual entry for '${cmd}'.\nTry 'help' for a list of built-in commands.`;
+                        content.split("\n").forEach(l => print(l, COLORS.info));
+                    },
+                    alias() {
+                        const aliases = [["ll","ls -la"],["la","ls -a"],["h","history"],["q","exit"],["..","cd .."]];
+                        printRaw(`<span style="color:${COLORS.header}">Defined aliases:</span>`);
+                        aliases.forEach(([a, v]) => printRaw(`  <span style="color:${COLORS.success}">${a}</span><span style="color:${COLORS.dim}">=</span><span style="color:${COLORS.info}">'${v}'</span>`));
+                    },
+                    colors() {
+                        printRaw(`<span style="color:${COLORS.header}">Color palette test:</span>`);
+                        const palette = [
+                            ["midnight","#080B12","#0D1220","#131A2C","#1A2338"],
+                            ["brass","#C9A468","#E8C888","#8A7148"],
+                            ["accent","#57D9C4","#8EF0E0","#8B85E0","#E0708A","#E0A94E"],
+                        ];
+                        palette.forEach(([name, ...colors]) => {
+                            const swatches = colors.map(c => `<span style="background:${c};color:${c};padding:0 8px;border-radius:3px;margin-right:4px">██</span><span style="color:${COLORS.dim};font-size:10px">${c}</span> `).join("");
+                            printRaw(`  <span style="color:${COLORS.success};display:inline-block;width:80px">${name}</span>${swatches}`);
+                        });
+                    },
+                    matrix() {
+                        print("Entering the Matrix…", COLORS.success);
+                        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*アイウエオカキクケコ";
+                        let count = 0;
+                        const iv = setInterval(() => {
+                            let line = "";
+                            for (let i = 0; i < 60; i++) line += `<span style="color:hsl(${120 + Math.random()*20},90%,${40 + Math.random()*30}%)">${chars[Math.floor(Math.random() * chars.length)]}</span>`;
+                            printRaw(line);
+                            if (++count >= 20) { clearInterval(iv); print("Wake up, Neo…", COLORS.warn); }
+                        }, 60);
+                    },
+                    sl() { print("   o O        ___________", COLORS.warn); print("  _][_n_n_n_n_|  _________)", COLORS.warn); print(">(________|_______)|======|", COLORS.warn); print("  /oo OOOOO oo`  ooo  ooo", COLORS.warn); print("──────────────────────────"); print("  🚂 You typed 'sl' instead of 'ls'!", COLORS.warn); },
+                    exit() { const wins = [...WindowManager.windows.values()].find(w => w.appId === "terminal"); if (wins) WindowManager.close(wins.id); },
+                };
+
+                // Aliases
+                const ALIASES = { ll: "ls -la", la: "ls -a", h: "history", q: "exit", "..": "cd .." };
+
+                function processCommand(rawCmd) {
+                    const cmd = rawCmd.trim();
+                    if (!cmd) return;
+                    // Expand aliases
+                    const expanded = ALIASES[cmd] || cmd;
+                    cmdHistory.push(cmd);
+                    histIdx = cmdHistory.length;
+                    printInput(cmd);
+
+                    const parts = expanded.split(/\s+/);
                     const command = parts[0].toLowerCase();
                     const args = parts.slice(1);
-                    if (!command) return;
-                    printLine(`$ ${cmd}`, "term-input");
-                    if (command === "clear") { output.innerHTML = ""; return; }
+
                     const fn = COMMANDS[command];
                     if (fn) {
-                        const result = fn(args);
-                        if (result === "__CLEAR__") { output.innerHTML = ""; } else { printLine(result); }
+                        fn(args);
                     } else {
-                        printLine(`command not found: ${command}`, "term-error");
+                        printRaw(`<span style="color:${COLORS.error}">bash: ${Utils.escapeHtml(command)}: command not found</span>`);
+                        printRaw(`<span style="color:${COLORS.dim}">Type 'help' for available commands or 'man ${Utils.escapeHtml(command)}' for help.</span>`);
                     }
                 }
 
-                const input = inputWrap.querySelector("input");
-                input.addEventListener("keydown", (e) => {
+                inputEl.addEventListener("keydown", (e) => {
                     if (e.key === "Enter") {
-                        const cmd = input.value;
-                        input.value = "";
+                        const cmd = inputEl.value;
+                        inputEl.value = "";
                         processCommand(cmd);
+                    } else if (e.key === "ArrowUp") {
+                        e.preventDefault();
+                        if (histIdx > 0) { histIdx--; inputEl.value = cmdHistory[histIdx]; inputEl.selectionStart = inputEl.selectionEnd = inputEl.value.length; }
+                    } else if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        if (histIdx < cmdHistory.length - 1) { histIdx++; inputEl.value = cmdHistory[histIdx]; }
+                        else { histIdx = cmdHistory.length; inputEl.value = ""; }
+                    } else if (e.key === "Tab") {
+                        e.preventDefault();
+                        const partial = inputEl.value;
+                        const node = getNode(cwd);
+                        const items = node?.children || [];
+                        const parts = partial.split(" ");
+                        const lastPart = parts[parts.length - 1];
+                        const matches = items.filter(n => n.startsWith(lastPart));
+                        if (matches.length === 1) { parts[parts.length - 1] = matches[0]; inputEl.value = parts.join(" "); }
+                        else if (matches.length > 1) { print(matches.join("  "), COLORS.dim); }
+                    } else if (e.key === "l" && e.ctrlKey) {
+                        e.preventDefault();
+                        output.innerHTML = "";
                     }
                 });
 
-                printLine("TITAN Ω Terminal v1.0");
-                printLine("Type 'help' for a list of commands.");
-                printLine("");
+                // Welcome message
+                printRaw(`<span style="color:${COLORS.header};font-weight:600">TITAN Ω Terminal v2.0</span><span style="color:${COLORS.dim}"> — Enhanced Shell</span>`);
+                print('/etc/motd:', COLORS.dim);
+                const motd = getNode("/etc/motd");
+                if (motd) motd.content.split("\n").forEach(l => print(l, COLORS.success));
+                print("", COLORS.dim);
 
+                inputEl.focus();
                 return { destroy() {} };
             }
             return { mount };
@@ -8690,89 +9275,209 @@ const WindowGeometry = (() => {
         /* ==== js/apps/whiteboard.js ==== */
         "use strict";
         /******************************************************************
-         * [APP:WHITEBOARD] — Free-form drawing canvas
+         * [APP:WHITEBOARD] — Free-form drawing canvas (enhanced)
          ******************************************************************/
         const WhiteboardApp = (() => {
-            const SWATCHES = ["#E8C888", "#57D9C4", "#8B85E0", "#E0708A", "#7FE0A0", "#F0F0F0", "#000000"];
+            const SWATCHES = ["#E8C888","#57D9C4","#8B85E0","#E0708A","#7FE0A0","#F5A623","#F0F0F0","#888888","#333333","#000000"];
 
             function mount(bodyEl) {
                 const canvas = Utils.el("canvas", { class: "whiteboard-canvas" });
-                const canvasWrap = Utils.el("div", { style: { flex: "1", position: "relative", background: "rgba(0,0,0,0.15)" } },
-                    [canvas]);
-                const toolbar = Utils.el("div", { class: "app-toolbar" }, [
-                    Utils.el("div", { class: "row gap-1" }, SWATCHES.map((c) => Utils.el("button", { class: "color-swatch" +
-                            (c === "#E8C888" ? " active" : ""), style: { background: c }, onClick: (e) => {
-                                color = c;
-                                [...e.currentTarget.parentElement.children].forEach((b) => b.classList.remove(
-                                    "active"));
-                                e.currentTarget.classList.add("active");
-                            } }))),
-                    Utils.el("div", { style: { width: "1px", height: "18px", background: "var(--hairline)",
-                            margin: "0 4px" } }),
-                    Utils.el("button", { class: "btn btn-sm" + (brushSize === 2 ? " active" : ""), onClick: (e) => { brushSize =
-                                2;
-                            [...e.currentTarget.parentElement.children].forEach((c) => c.classList.remove(
-                                "active"));
-                            e.currentTarget.classList.add("active"); } }, "S"),
-                    Utils.el("button", { class: "btn btn-sm" + (brushSize === 4 ? " active" : ""), onClick: (e) => { brushSize =
-                                4;
-                            [...e.currentTarget.parentElement.children].forEach((c) => c.classList.remove(
-                                "active"));
-                            e.currentTarget.classList.add("active"); } }, "M"),
-                    Utils.el("button", { class: "btn btn-sm" + (brushSize === 8 ? " active" : ""), onClick: (e) => { brushSize =
-                                8;
-                            [...e.currentTarget.parentElement.children].forEach((c) => c.classList.remove(
-                                "active"));
-                            e.currentTarget.classList.add("active"); } }, "L"),
-                    Utils.el("div", { class: "grow" }),
-                    Utils.el("button", { class: "btn btn-ghost btn-sm", onClick: () => { ctx.clearRect(0, 0, w,
-                                h); } }, "Clear")
-                ]);
-                bodyEl.appendChild(Utils.el("div", { class: "app-root" }, [toolbar, canvasWrap]));
+                const canvasWrap = Utils.el("div", { style: { flex: "1", position: "relative", background: "rgba(0,0,0,0.15)", overflow: "hidden" } }, [canvas]);
+
+                let tool = "pen", color = "#E8C888", brushSize = 4;
+                let drawing = false, lastX = 0, lastY = 0, startX = 0, startY = 0;
+                let undoStack = [], redoStack = [];
+                let snapshot = null;
 
                 const ctx = canvas.getContext("2d");
-                let w = 0,
-                    h = 0,
-                    color = "#E8C888",
-                    brushSize = 4,
-                    drawing = false,
-                    lastX = 0,
-                    lastY = 0;
+                let w = 0, h = 0;
 
-                const ro = Utils.observeCanvasResize(canvas, ctx, (cw, ch) => { w = cw;
-                    h = ch; });
+                const TOOLS = [
+                    { id: "pen", icon: "✏️", label: "Pen" },
+                    { id: "eraser", icon: "🗑", label: "Eraser" },
+                    { id: "line", icon: "╱", label: "Line" },
+                    { id: "rect", icon: "▭", label: "Rectangle" },
+                    { id: "circle", icon: "○", label: "Circle" },
+                    { id: "arrow", icon: "→", label: "Arrow" },
+                ];
 
-                function startDraw(e) {
+                const toolBtns = {};
+                const toolPanel = Utils.el("div", { class: "wb-toolpanel" });
+                TOOLS.forEach(t => {
+                    const btn = Utils.el("button", { class: "wb-tool" + (t.id === tool ? " active" : ""),
+                        title: t.label, onClick: () => {
+                            tool = t.id;
+                            Object.values(toolBtns).forEach(b => b.classList.remove("active"));
+                            btn.classList.add("active");
+                            canvas.style.cursor = t.id === "eraser" ? "cell" : t.id === "pen" ? "crosshair" : "crosshair";
+                        } }, t.icon);
+                    toolBtns[t.id] = btn;
+                    toolPanel.appendChild(btn);
+                });
+                toolPanel.appendChild(Utils.el("div", { class: "wb-tool-sep" }));
+
+                // Size buttons
+                [["S","2"],["M","4"],["L","8"],["XL","14"]].forEach(([label, size]) => {
+                    toolPanel.appendChild(Utils.el("button", {
+                        class: "wb-tool" + (size === "4" ? " active" : ""),
+                        title: `Size ${label}`,
+                        onClick: (e) => { brushSize = +size; [...e.currentTarget.parentElement.querySelectorAll("[data-size]")].forEach(b => b.classList.remove("active")); e.currentTarget.classList.add("active"); },
+                        dataset: { size }
+                    }, label));
+                });
+
+                toolPanel.appendChild(Utils.el("div", { class: "wb-tool-sep" }));
+                // Undo / Redo
+                const undoBtn = Utils.el("button", { class: "wb-tool", title: "Undo (Ctrl+Z)", onClick: undo }, "↩");
+                const redoBtn = Utils.el("button", { class: "wb-tool", title: "Redo (Ctrl+Y)", onClick: redo }, "↪");
+                toolPanel.appendChild(undoBtn);
+                toolPanel.appendChild(redoBtn);
+                toolPanel.appendChild(Utils.el("div", { class: "wb-tool-sep" }));
+                toolPanel.appendChild(Utils.el("button", { class: "wb-tool", title: "Export PNG", onClick: exportPng }, "💾"));
+                toolPanel.appendChild(Utils.el("button", { class: "wb-tool", title: "Clear canvas", onClick: clearCanvas, style: "color:var(--rose)" }, "✕"));
+
+                // Color swatches in toolbar
+                const swatchRow = Utils.el("div", { class: "row gap-1", style: { flexWrap: "wrap", padding: "4px" } });
+                SWATCHES.forEach(c => {
+                    const sw = Utils.el("button", { class: "color-swatch" + (c === color ? " active" : ""),
+                        style: { background: c, width: "18px", height: "18px" },
+                        onClick: (e) => { color = c; [...swatchRow.children].forEach(b => b.classList.remove("active")); e.currentTarget.classList.add("active"); } });
+                    swatchRow.appendChild(sw);
+                });
+
+                const toolbar = Utils.el("div", { class: "app-toolbar", style: { flexWrap: "wrap" } }, [
+                    swatchRow,
+                    Utils.el("div", { class: "grow" }),
+                    Utils.el("button", { class: "btn btn-ghost btn-sm", style: { fontSize: "11px" }, onClick: () => toggleGrid() }, "Grid"),
+                ]);
+
+                bodyEl.appendChild(Utils.el("div", { class: "app-root" }, [
+                    toolbar,
+                    Utils.el("div", { class: "row grow", style: { overflow: "hidden" } }, [toolPanel, canvasWrap])
+                ]));
+
+                let showGrid = false;
+                function toggleGrid() {
+                    showGrid = !showGrid;
+                    if (!showGrid) { ctx.clearRect(0, 0, w, h); restoreSnapshot(); }
+                    drawGrid();
+                }
+
+                function drawGrid() {
+                    if (!showGrid) return;
+                    ctx.save();
+                    ctx.strokeStyle = "rgba(255,255,255,0.05)";
+                    ctx.lineWidth = 1;
+                    const step = 30;
+                    for (let x = 0; x < w; x += step) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+                    for (let y = 0; y < h; y += step) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+                    ctx.restore();
+                }
+
+                function saveUndo() {
+                    undoStack.push(canvas.toDataURL());
+                    if (undoStack.length > 40) undoStack.shift();
+                    redoStack = [];
+                }
+
+                function undo() {
+                    if (!undoStack.length) return;
+                    redoStack.push(canvas.toDataURL());
+                    const img = new Image();
+                    img.src = undoStack.pop();
+                    img.onload = () => { ctx.clearRect(0, 0, w, h); ctx.drawImage(img, 0, 0); if (showGrid) drawGrid(); };
+                }
+
+                function redo() {
+                    if (!redoStack.length) return;
+                    undoStack.push(canvas.toDataURL());
+                    const img = new Image();
+                    img.src = redoStack.pop();
+                    img.onload = () => { ctx.clearRect(0, 0, w, h); ctx.drawImage(img, 0, 0); if (showGrid) drawGrid(); };
+                }
+
+                function clearCanvas() {
+                    saveUndo();
+                    ctx.clearRect(0, 0, w, h);
+                    if (showGrid) drawGrid();
+                }
+
+                function exportPng() {
+                    const link = document.createElement("a");
+                    link.download = "whiteboard.png";
+                    link.href = canvas.toDataURL("image/png");
+                    link.click();
+                }
+
+                function getPos(e) {
+                    const r = canvas.getBoundingClientRect();
+                    return { x: (e.clientX - r.left) * (canvas.width / r.width / window.devicePixelRatio), y: (e.clientY - r.top) * (canvas.height / r.height / window.devicePixelRatio) };
+                }
+
+                function saveSnapshot() { snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height); }
+                function restoreSnapshot() { if (snapshot) ctx.putImageData(snapshot, 0, 0); }
+
+                function drawArrow(x1, y1, x2, y2) {
+                    const angle = Math.atan2(y2 - y1, x2 - x1);
+                    const headLen = Math.max(10, brushSize * 3);
+                    ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+                    ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6));
+                    ctx.moveTo(x2, y2);
+                    ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6));
+                }
+
+                canvas.addEventListener("pointerdown", (e) => {
                     drawing = true;
-                    const r = canvas.getBoundingClientRect();
-                    lastX = e.clientX - r.left;
-                    lastY = e.clientY - r.top;
+                    const pos = getPos(e);
+                    lastX = startX = pos.x; lastY = startY = pos.y;
                     canvas.setPointerCapture(e.pointerId);
-                }
+                    saveUndo();
+                    if (tool === "pen" || tool === "eraser") {
+                        ctx.beginPath(); ctx.moveTo(pos.x, pos.y);
+                    } else {
+                        saveSnapshot();
+                    }
+                });
 
-                function moveDraw(e) {
+                canvas.addEventListener("pointermove", (e) => {
                     if (!drawing) return;
-                    const r = canvas.getBoundingClientRect();
-                    const x = e.clientX - r.left;
-                    const y = e.clientY - r.top;
-                    ctx.beginPath();
-                    ctx.moveTo(lastX, lastY);
-                    ctx.lineTo(x, y);
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = brushSize;
-                    ctx.lineCap = "round";
-                    ctx.lineJoin = "round";
-                    ctx.stroke();
-                    lastX = x;
-                    lastY = y;
-                }
+                    const pos = getPos(e);
+                    ctx.lineCap = "round"; ctx.lineJoin = "round";
+                    if (tool === "pen") {
+                        ctx.strokeStyle = color; ctx.lineWidth = brushSize;
+                        ctx.lineTo(pos.x, pos.y); ctx.stroke();
+                        lastX = pos.x; lastY = pos.y;
+                    } else if (tool === "eraser") {
+                        ctx.strokeStyle = "rgba(0,0,0,1)"; ctx.globalCompositeOperation = "destination-out";
+                        ctx.lineWidth = brushSize * 3;
+                        ctx.lineTo(pos.x, pos.y); ctx.stroke();
+                        ctx.globalCompositeOperation = "source-over";
+                        lastX = pos.x; lastY = pos.y;
+                    } else {
+                        restoreSnapshot();
+                        if (showGrid) drawGrid();
+                        ctx.strokeStyle = color; ctx.lineWidth = brushSize;
+                        ctx.beginPath();
+                        if (tool === "line") { ctx.moveTo(startX, startY); ctx.lineTo(pos.x, pos.y); ctx.stroke(); }
+                        else if (tool === "rect") { ctx.strokeRect(startX, startY, pos.x - startX, pos.y - startY); }
+                        else if (tool === "circle") {
+                            const rx = (pos.x - startX) / 2, ry = (pos.y - startY) / 2;
+                            ctx.ellipse(startX + rx, startY + ry, Math.abs(rx), Math.abs(ry), 0, 0, Math.PI * 2);
+                            ctx.stroke();
+                        } else if (tool === "arrow") { drawArrow(startX, startY, pos.x, pos.y); ctx.stroke(); }
+                    }
+                });
 
-                function endDraw() { drawing = false; }
+                canvas.addEventListener("pointerup", () => { drawing = false; snapshot = null; ctx.beginPath(); });
+                canvas.addEventListener("pointercancel", () => { drawing = false; });
 
-                canvas.addEventListener("pointerdown", startDraw);
-                canvas.addEventListener("pointermove", moveDraw);
-                canvas.addEventListener("pointerup", endDraw);
-                canvas.addEventListener("pointercancel", endDraw);
+                document.addEventListener("keydown", (e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
+                    if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "z"))) { e.preventDefault(); redo(); }
+                });
+
+                const ro = Utils.observeCanvasResize(canvas, ctx, (cw, ch) => { w = cw; h = ch; if (showGrid) drawGrid(); });
+                canvas.style.cursor = "crosshair";
 
                 return { destroy() { ro.disconnect(); } };
             }
@@ -8784,74 +9489,163 @@ const WindowGeometry = (() => {
         /* ==== js/apps/todo.js ==== */
         "use strict";
         /******************************************************************
-         * [APP:TODO] — To-Do List
+         * [APP:TODO] — To-Do List (enhanced with priorities, filters, due dates)
          ******************************************************************/
         const TodoApp = (() => {
+            const PRIORITIES = { high: { label: "High", color: "#E0708A" }, medium: { label: "Med", color: "#E0A94E" }, low: { label: "Low", color: "#57D9C4" } };
+            const CATEGORIES = ["Work", "Personal", "Research", "Ideas", "Urgent"];
+
             function mount(bodyEl) {
-                const input = Utils.el("input", { class: "input", placeholder: "Add a new task…" });
-                const addBtn = Utils.el("button", { class: "btn btn-primary btn-sm", html: Icons.svg("plus", 12) +
-                        "<span>Add</span>" });
-                const toolbar = Utils.el("div", { class: "app-toolbar" }, [
-                    Utils.el("div", { class: "field grow" }, [input, Utils.el("div", { class: "field-icon",
-                            html: Icons.svg("tag", 14) })]),
-                    addBtn
-                ]);
-                const listWrap = Utils.el("div", { class: "grow scroll-y", style: { padding: "8px 12px" } });
-                bodyEl.appendChild(Utils.el("div", { class: "app-root" }, [toolbar, listWrap]));
+                let filter = "all";
+                let priorityFilter = "all";
+
+                const taskInput = Utils.el("input", { class: "input", placeholder: "Add a new task…", style: { flex: "1" } });
+                const dueInput = Utils.el("input", { type: "date", class: "input", style: { width: "130px", flex: "none", fontSize: "11px" } });
+                const prioritySelect = Utils.el("select", { class: "input", style: { width: "90px", flex: "none", fontSize: "11px" } });
+                ["high","medium","low"].forEach(p => {
+                    const opt = document.createElement("option");
+                    opt.value = p; opt.textContent = PRIORITIES[p].label;
+                    prioritySelect.appendChild(opt);
+                });
+                prioritySelect.value = "medium";
+                const catSelect = Utils.el("select", { class: "input", style: { width: "100px", flex: "none", fontSize: "11px" } });
+                const defOpt = document.createElement("option"); defOpt.value = ""; defOpt.textContent = "Category"; catSelect.appendChild(defOpt);
+                CATEGORIES.forEach(c => { const o = document.createElement("option"); o.value = c; o.textContent = c; catSelect.appendChild(o); });
+
+                const addBtn = Utils.el("button", { class: "btn btn-primary btn-sm", html: Icons.svg("plus", 12) + "<span>Add</span>" });
+                const addRow = Utils.el("div", { class: "row gap-2", style: { padding: "10px 12px", borderBottom: "1px solid var(--hairline)", flexWrap: "wrap" } }, [taskInput, dueInput, prioritySelect, catSelect, addBtn]);
+
+                // Filter chips
+                const filterChips = Utils.el("div", { class: "row gap-1", style: { padding: "8px 12px", borderBottom: "1px solid var(--hairline)", flexWrap: "wrap", gap: "6px" } });
+                const filters = [["all","All"],["active","Active"],["done","Done"],["high","🔴 High"],["medium","🟡 Med"],["low","🟢 Low"]];
+                const chipEls = {};
+                filters.forEach(([v, l]) => {
+                    const chip = Utils.el("div", { class: "chip" + (v === "all" ? " active" : ""), onClick: () => {
+                        filter = v.includes("h") || v.includes("m") || v.includes("l") && v !== "all" && v !== "active" && v !== "done" ? "all" : v;
+                        priorityFilter = (v === "high" || v === "medium" || v === "low") ? v : "all";
+                        if (v === "high" || v === "medium" || v === "low") filter = "all";
+                        Object.values(chipEls).forEach(c => c.classList.remove("active"));
+                        chip.classList.add("active");
+                        renderTodos();
+                    } }, l);
+                    chipEls[v] = chip;
+                    filterChips.appendChild(chip);
+                });
+
+                // Stats bar
+                const statsBar = Utils.el("div", { class: "row gap-3", style: { padding: "6px 12px", background: "var(--ink-3)", borderBottom: "1px solid var(--hairline)", fontSize: "11px" } });
+
+                const listWrap = Utils.el("div", { class: "grow scroll-y", style: { padding: "8px 0" } });
+                bodyEl.appendChild(Utils.el("div", { class: "app-root" }, [addRow, filterChips, statsBar, listWrap]));
+
+                function getTodos() { return StateManager.get("todos2") || []; }
+
+                function renderStats() {
+                    const all = getTodos();
+                    const done = all.filter(t => t.done).length;
+                    const high = all.filter(t => t.priority === "high" && !t.done).length;
+                    const pct = all.length ? Math.round(done / all.length * 100) : 0;
+                    statsBar.innerHTML = "";
+                    statsBar.appendChild(Utils.el("span", { class: "text-3" }, `${done}/${all.length} done`));
+                    const bar = Utils.el("div", { style: { flex: "1", height: "4px", background: "var(--hairline)", borderRadius: "2px", overflow: "hidden" } },
+                        [Utils.el("div", { style: { height: "100%", width: pct + "%", background: "var(--accent-2)", borderRadius: "2px", transition: "width 0.4s" } })]);
+                    statsBar.appendChild(bar);
+                    if (high) statsBar.appendChild(Utils.el("span", { style: { color: "#E0708A" } }, `${high} urgent`));
+                    statsBar.appendChild(Utils.el("button", { class: "btn btn-ghost btn-sm", style: { fontSize: "10px", marginLeft: "auto", height: "20px" }, onClick: clearDone }, "Clear done"));
+                }
 
                 function renderTodos() {
                     listWrap.innerHTML = "";
-                    const todos = StateManager.get("todos") || [];
+                    renderStats();
+                    let todos = getTodos();
+
+                    if (filter === "active") todos = todos.filter(t => !t.done);
+                    else if (filter === "done") todos = todos.filter(t => t.done);
+                    if (priorityFilter !== "all") todos = todos.filter(t => t.priority === priorityFilter);
+
+                    // Sort: high priority undone first, then medium, then low, then done
+                    const pOrd = { high: 0, medium: 1, low: 2 };
+                    todos.sort((a, b) => {
+                        if (a.done !== b.done) return a.done ? 1 : -1;
+                        return (pOrd[a.priority] || 1) - (pOrd[b.priority] || 1);
+                    });
+
                     if (!todos.length) {
                         listWrap.appendChild(Utils.el("div", { class: "empty-state", style: { padding: "30px" } }, [
                             Utils.el("div", { html: Icons.svg("todo", 30) }),
-                            Utils.el("div", { class: "es-title" }, "No tasks yet"),
-                            Utils.el("div", { class: "es-sub" }, "Add a task using the input above.")
+                            Utils.el("div", { class: "es-title" }, "All clear!"),
+                            Utils.el("div", { class: "es-sub" }, filter === "all" ? "Add your first task above." : "No tasks in this filter.")
                         ]));
                         return;
                     }
-                    todos.forEach((todo, idx) => {
-                        const item = Utils.el("div", { class: "todo-item" }, [
-                            Utils.el("div", { class: "todo-check" + (todo.done ? " done" : ""),
-                                onClick: () => toggleTodo(idx), html: todo.done ? Icons.svg("check", 11) :
-                                    "" }),
-                            Utils.el("div", { class: "todo-text" + (todo.done ? " done" : "") }, Utils
-                                .escapeHtml(todo.text)),
-                            Utils.el("div", { class: "todo-delete", onClick: () => deleteTodo(idx),
-                                html: Icons.svg("trash", 13) })
-                        ]);
+
+                    todos.forEach((todo) => {
+                        const pInfo = PRIORITIES[todo.priority || "medium"];
+                        const isOverdue = todo.dueDate && !todo.done && new Date(todo.dueDate) < new Date();
+                        const dueDateStr = todo.dueDate ? new Date(todo.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : null;
+
+                        const item = Utils.el("div", { class: "todo-item" + (todo.done ? " done-item" : ""), style: { borderLeft: `3px solid ${todo.done ? "transparent" : pInfo.color}`, marginLeft: "0", paddingLeft: "12px" } });
+
+                        const check = Utils.el("div", { class: "todo-check" + (todo.done ? " done" : ""), onClick: () => toggleTodo(todo.id), html: todo.done ? Icons.svg("check", 11) : "" });
+                        const textWrap = Utils.el("div", { class: "col grow", style: { minWidth: 0 } });
+                        const textEl = Utils.el("div", { class: "todo-text" + (todo.done ? " done" : ""), style: { lineHeight: "1.4" } }, Utils.escapeHtml(todo.text));
+                        textWrap.appendChild(textEl);
+
+                        const meta = Utils.el("div", { class: "row gap-2", style: { marginTop: "3px", flexWrap: "wrap" } });
+                        if (todo.category) meta.appendChild(Utils.el("span", { class: "badge", style: { fontSize: "9px", background: "var(--ink-4)", color: "var(--text-3)" } }, todo.category));
+                        if (dueDateStr) meta.appendChild(Utils.el("span", { style: { fontSize: "10px", color: isOverdue ? "#E0708A" : "var(--text-3)" } }, (isOverdue ? "⚠ " : "📅 ") + dueDateStr));
+                        if (meta.children.length) textWrap.appendChild(meta);
+
+                        const del = Utils.el("button", { class: "btn btn-ghost btn-sm btn-icon", onClick: () => deleteTodo(todo.id), html: Icons.svg("trash", 12), style: { opacity: "0.5", flex: "none" } });
+                        item.appendChild(check);
+                        item.appendChild(textWrap);
+                        item.appendChild(del);
                         listWrap.appendChild(item);
                     });
                 }
 
                 function addTodo() {
-                    const text = input.value.trim();
+                    const text = taskInput.value.trim();
                     if (!text) return;
-                    const todos = StateManager.get("todos") || [];
-                    todos.push({ text, done: false, ts: Date.now() });
-                    StateManager.set("todos", todos);
-                    input.value = "";
+                    const todos = getTodos();
+                    todos.push({ id: Utils.uid("todo"), text, done: false, priority: prioritySelect.value, category: catSelect.value, dueDate: dueInput.value || null, ts: Date.now() });
+                    StateManager.set("todos2", todos);
+                    taskInput.value = ""; dueInput.value = ""; catSelect.value = "";
+                    renderTodos();
+                    NotificationCenter.push({ type: "success", title: "Task added", duration: 1200 });
+                }
+
+                function toggleTodo(id) {
+                    const todos = getTodos();
+                    const t = todos.find(t => t.id === id);
+                    if (t) { t.done = !t.done; t.completedAt = t.done ? Date.now() : null; StateManager.set("todos2", todos); renderTodos(); }
+                }
+
+                function deleteTodo(id) {
+                    StateManager.set("todos2", getTodos().filter(t => t.id !== id));
                     renderTodos();
                 }
 
-                function toggleTodo(idx) {
-                    const todos = StateManager.get("todos") || [];
-                    if (todos[idx]) { todos[idx].done = !todos[idx].done;
-                        StateManager.set("todos", todos);
-                        renderTodos(); }
-                }
-
-                function deleteTodo(idx) {
-                    let todos = StateManager.get("todos") || [];
-                    todos = todos.filter((_, i) => i !== idx);
-                    StateManager.set("todos", todos);
+                function clearDone() {
+                    StateManager.set("todos2", getTodos().filter(t => !t.done));
                     renderTodos();
                 }
 
                 addBtn.addEventListener("click", addTodo);
-                input.addEventListener("keydown", (e) => { if (e.key === "Enter") addTodo(); });
-
+                taskInput.addEventListener("keydown", (e) => { if (e.key === "Enter") addTodo(); });
                 renderTodos();
+
+                // Seed with sample tasks if empty
+                if (!getTodos().length) {
+                    const samples = [
+                        { text: "Explore the Architecture Atlas", priority: "high", category: "Research" },
+                        { text: "Try the Simulation Lab boids", priority: "medium", category: "Research" },
+                        { text: "Write session notes", priority: "low", category: "Personal" },
+                        { text: "Review Knowledge Graph connections", priority: "medium", category: "Work" },
+                    ];
+                    StateManager.set("todos2", samples.map((s, i) => ({ ...s, id: Utils.uid("todo"), done: i === 2, ts: Date.now() - i * 86400000, dueDate: null })));
+                    renderTodos();
+                }
                 return { destroy() {} };
             }
             return { mount };
@@ -8862,62 +9656,175 @@ const WindowGeometry = (() => {
         /* ==== js/apps/systemmonitor.js ==== */
         "use strict";
         /******************************************************************
-         * [APP:SYSTEMMONITOR] — System Monitor dashboard
+         * [APP:SYSTEMMONITOR] — System Monitor dashboard (enhanced with live charts + process list)
          ******************************************************************/
         const SystemMonitorApp = (() => {
+            // Simulated process list
+            const PROCESSES = [
+                { name: "window-mgr", pid: 99, baseCpu: 8, baseMem: 24 },
+                { name: "renderer3d", pid: 200, baseCpu: 22, baseMem: 48 },
+                { name: "animation-eng", pid: 210, baseCpu: 12, baseMem: 16 },
+                { name: "dock", pid: 137, baseCpu: 2, baseMem: 8 },
+                { name: "topbar", pid: 144, baseCpu: 1, baseMem: 6 },
+                { name: "state-mgr", pid: 50, baseCpu: 0, baseMem: 12 },
+                { name: "event-bus", pid: 55, baseCpu: 0, baseMem: 5 },
+                { name: "perf-monitor", pid: 60, baseCpu: 1, baseMem: 4 },
+                { name: "knowledge-svc", pid: 310, baseCpu: 4, baseMem: 32 },
+                { name: "network-sim", pid: 400, baseCpu: 3, baseMem: 10 },
+            ];
+
+            function getSimCpu() { return Math.min(98, Math.max(5, PerfMonitor.getFps() > 55 ? 15 + Math.random() * 20 : 40 + Math.random() * 30)); }
+            function getSimMem() {
+                const m = PerfMonitor.memInfo();
+                if (m) return (m.used / m.limit * 100);
+                return 30 + Math.random() * 20;
+            }
+
+            const cpuHistory = Array(40).fill(20);
+            const memHistory = Array(40).fill(30);
+            const netHistory = Array(40).fill(0);
+
             function mount(bodyEl) {
-                const scroll = Utils.el("div", { class: "grow scroll-y", style: { padding: "20px" } });
-                bodyEl.appendChild(Utils.el("div", { class: "app-root" }, [scroll]));
+                const wrap = Utils.el("div", { class: "sysmon-wrap" });
+                bodyEl.appendChild(Utils.el("div", { class: "app-root" }, [wrap]));
 
-                function render() {
-                    scroll.innerHTML = "";
-                    scroll.appendChild(Utils.el("div", { class: "eyebrow" }, "System Monitor"));
-                    scroll.appendChild(Utils.el("h2", { style: { fontSize: "20px", fontWeight: "600", margin: "4px 0 18px" } },
-                        "Live Telemetry"));
+                // Top stat gauges
+                const statsGrid = Utils.el("div", { class: "sysmon-stats" });
+                const cpuGaugeVal = Utils.el("div", { class: "sysmon-gauge-value" }, "–");
+                const memGaugeVal = Utils.el("div", { class: "sysmon-gauge-value" }, "–");
+                const fpsGaugeVal = Utils.el("div", { class: "sysmon-gauge-value" }, "–");
+                const winGaugeVal = Utils.el("div", { class: "sysmon-gauge-value" }, "–");
+                const cpuBar = Utils.el("div", { class: "sysmon-bar-fill", style: { background: "var(--accent-2)", width: "20%" } });
+                const memBar = Utils.el("div", { class: "sysmon-bar-fill", style: { background: "var(--brass)", width: "30%" } });
 
-                    const grid = Utils.el("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
-                            gap: "12px" } });
-
-                    const mem = PerfMonitor.memInfo();
-                    const used = mem ? (mem.used / 1024 / 1024).toFixed(1) : "N/A";
-                    const limit = mem ? (mem.limit / 1024 / 1024).toFixed(1) : "N/A";
-                    const data = [
-                        { label: "CPU Cores", value: navigator.hardwareConcurrency || "–" },
-                        { label: "FPS", value: PerfMonitor.getFps() },
-                        { label: "Memory Used", value: used + " MB" },
-                        { label: "Memory Limit", value: limit + " MB" },
-                        { label: "Open Windows", value: WindowManager.windows.size },
-                        { label: "Plugins Active", value: Object.values(StateManager.get("pluginsEnabled") || {})
-                            .filter(Boolean).length }
-                    ];
-                    data.forEach((d) => grid.appendChild(Utils.el("div", { class: "stat-card" }, [
-                        Utils.el("div", { class: "stat-label" }, d.label),
-                        Utils.el("div", { class: "stat-value font-mono" }, d.value)
-                    ])));
-                    scroll.appendChild(grid);
-
-                    const fpsHistory = PerfMonitor.getHistory();
-                    if (fpsHistory.length > 0) {
-                        const canvas = Utils.el("canvas", { style: { width: "100%", height: "80px", marginTop: "20px",
-                                display: "block" } });
-                        scroll.appendChild(canvas);
-                        requestAnimationFrame(() => {
-                            const ctx = canvas.getContext("2d");
-                            const dpr = Math.min(window.devicePixelRatio || 1, 2);
-                            const rect = canvas.getBoundingClientRect();
-                            const w = Math.max(1, rect.width),
-                                h = Math.max(1, rect.height);
-                            canvas.width = Math.round(w * dpr);
-                            canvas.height = Math.round(h * dpr);
-                            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-                            ChartKit.lineChart(ctx, w, h, fpsHistory.map((f) => ({ value: f })), { stroke: "#57D9C4",
-                                fillTop: "rgba(87,217,196,0.25)" });
-                        });
+                const makeGauge = (label, valEl, sub, barFill, color) => {
+                    const g = Utils.el("div", { class: "sysmon-gauge" });
+                    g.appendChild(Utils.el("div", { class: "sysmon-gauge-label" }, label));
+                    g.appendChild(valEl);
+                    g.appendChild(Utils.el("div", { class: "sysmon-gauge-sub" }, sub));
+                    if (barFill) {
+                        const bar = Utils.el("div", { class: "sysmon-bar" }, [barFill]);
+                        g.appendChild(bar);
                     }
+                    return g;
+                };
+                statsGrid.appendChild(makeGauge("CPU Usage", cpuGaugeVal, "simulated", cpuBar, "var(--accent-2)"));
+                statsGrid.appendChild(makeGauge("Memory", memGaugeVal, "of total", memBar, "var(--brass)"));
+                statsGrid.appendChild(makeGauge("Frame Rate", fpsGaugeVal, "frames/sec", null, null));
+                statsGrid.appendChild(makeGauge("Windows", winGaugeVal, "open", null, null));
+                wrap.appendChild(statsGrid);
+
+                // Charts
+                const chartsGrid = Utils.el("div", { class: "sysmon-charts" });
+                const cpuCanvas = Utils.el("canvas", { style: { width: "100%", height: "80px", display: "block" } });
+                const memCanvas = Utils.el("canvas", { style: { width: "100%", height: "80px", display: "block" } });
+                const cpuCard = Utils.el("div", { class: "sysmon-chart-card" }, [Utils.el("div", { class: "sysmon-chart-title" }, "CPU History"), cpuCanvas]);
+                const memCard = Utils.el("div", { class: "sysmon-chart-card" }, [Utils.el("div", { class: "sysmon-chart-title" }, "Memory History"), memCanvas]);
+                chartsGrid.appendChild(cpuCard);
+                chartsGrid.appendChild(memCard);
+                wrap.appendChild(chartsGrid);
+
+                function drawHistoryChart(canvas, data, color, fillColor) {
+                    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                    const rect = canvas.getBoundingClientRect();
+                    if (!rect.width) return;
+                    canvas.width = Math.round(rect.width * dpr);
+                    canvas.height = Math.round(rect.height * dpr);
+                    const ctx = canvas.getContext("2d");
+                    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                    const w = rect.width, h = rect.height;
+                    ctx.clearRect(0, 0, w, h);
+                    if (data.length < 2) return;
+                    const max = 100;
+                    const pts = data.map((v, i) => [i / (data.length - 1) * w, h - (v / max * h * 0.9 + h * 0.05)]);
+                    // Fill
+                    ctx.beginPath();
+                    ctx.moveTo(pts[0][0], h);
+                    pts.forEach(([x, y]) => ctx.lineTo(x, y));
+                    ctx.lineTo(pts[pts.length - 1][0], h);
+                    ctx.closePath();
+                    const grad = ctx.createLinearGradient(0, 0, 0, h);
+                    grad.addColorStop(0, fillColor);
+                    grad.addColorStop(1, "rgba(0,0,0,0)");
+                    ctx.fillStyle = grad;
+                    ctx.fill();
+                    // Line
+                    ctx.beginPath();
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 1.5;
+                    ctx.lineJoin = "round";
+                    pts.forEach(([x, y], i) => i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
+                    ctx.stroke();
+                    // Current value line
+                    const last = pts[pts.length - 1];
+                    ctx.beginPath();
+                    ctx.setLineDash([3, 3]);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 1;
+                    ctx.moveTo(0, last[1]); ctx.lineTo(w, last[1]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
                 }
 
-                render();
-                const timer = setInterval(render, 2000);
+                // Process list
+                const procHeader = Utils.el("div", { class: "sysmon-process-header" }, [
+                    Utils.el("div", {}, "Process"),
+                    Utils.el("div", {}, "PID"),
+                    Utils.el("div", {}, "CPU %"),
+                    Utils.el("div", {}, "Mem MB"),
+                ]);
+                const procList = Utils.el("div", { class: "sysmon-process-list" });
+                procList.appendChild(Utils.el("div", { style: { fontWeight: "600", fontSize: "11px", color: "var(--text-2)", marginBottom: "6px" } }, "Running Processes"));
+                procList.appendChild(procHeader);
+                const procRows = {};
+                PROCESSES.forEach(p => {
+                    const cpuEl = Utils.el("div", { class: "sysmon-process-val" });
+                    const memEl = Utils.el("div", { class: "sysmon-process-val" });
+                    const row = Utils.el("div", { class: "sysmon-process-row" }, [
+                        Utils.el("div", { class: "sysmon-process-name" }, p.name),
+                        Utils.el("div", { class: "sysmon-process-val", style: { color: "var(--text-3)" } }, String(p.pid)),
+                        cpuEl, memEl
+                    ]);
+                    procRows[p.pid] = { cpuEl, memEl };
+                    procList.appendChild(row);
+                });
+                wrap.appendChild(procList);
+
+                function update() {
+                    const cpu = getSimCpu();
+                    const mem = getSimMem();
+                    const fps = PerfMonitor.getFps();
+                    const wins = WindowManager.windows.size;
+
+                    cpuHistory.push(cpu); cpuHistory.shift();
+                    memHistory.push(mem); memHistory.shift();
+                    netHistory.push(Math.random() * 40); netHistory.shift();
+
+                    cpuGaugeVal.textContent = cpu.toFixed(0) + "%";
+                    memGaugeVal.textContent = mem.toFixed(0) + "%";
+                    fpsGaugeVal.textContent = fps;
+                    winGaugeVal.textContent = wins;
+                    cpuBar.style.width = cpu + "%";
+                    cpuBar.style.background = cpu > 80 ? "var(--rose)" : cpu > 60 ? "var(--amber)" : "var(--accent-2)";
+                    memBar.style.width = mem + "%";
+
+                    drawHistoryChart(cpuCanvas, cpuHistory, "#57D9C4", "rgba(87,217,196,0.15)");
+                    drawHistoryChart(memCanvas, memHistory, "#C9A468", "rgba(201,164,104,0.15)");
+
+                    PROCESSES.forEach(p => {
+                        const variance = Math.random() * 6 - 3;
+                        const pCpu = Math.max(0, Math.min(99, p.baseCpu + variance)).toFixed(1);
+                        const pMem = (p.baseMem + Math.random() * 2 - 1).toFixed(1);
+                        if (procRows[p.pid]) {
+                            procRows[p.pid].cpuEl.textContent = pCpu;
+                            procRows[p.pid].cpuEl.style.color = pCpu > 20 ? "var(--rose)" : pCpu > 10 ? "var(--amber)" : "var(--accent-2)";
+                            procRows[p.pid].memEl.textContent = pMem;
+                        }
+                    });
+                }
+
+                update();
+                const timer = setInterval(update, 1500);
                 return { destroy() { clearInterval(timer); } };
             }
             return { mount };
@@ -9249,111 +10156,184 @@ const WindowGeometry = (() => {
         /* ==== js/apps/notes.js ==== */
         "use strict";
         /******************************************************************
-         * [APP:NOTES] — Simple note-taking app
+         * [APP:NOTES] — Note-taking app with markdown preview, search, autosave, tags
          ******************************************************************/
         const NotesApp = (() => {
+            const TAGS = ["📌 Pinned", "💡 Ideas", "📖 Research", "✅ Tasks", "🔗 Links", "🧪 Experiments"];
+
+            function simpleMarkdown(md) {
+                return md
+                    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                    .replace(/^#{3} (.+)$/gm, "<h3>$1</h3>")
+                    .replace(/^#{2} (.+)$/gm, "<h2>$1</h2>")
+                    .replace(/^# (.+)$/gm, "<h1>$1</h1>")
+                    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+                    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+                    .replace(/`(.+?)`/g, "<code>$1</code>")
+                    .replace(/^> (.+)$/gm, "<blockquote>$1</blockquote>")
+                    .replace(/^---+$/gm, "<hr>")
+                    .replace(/\[(.+?)\]\((.+?)\)/g, "<a href='$2'>$1</a>")
+                    .replace(/^- (.+)$/gm, "<li>$1</li>")
+                    .replace(/(<li>.*<\/li>\n?)+/g, "<ul>$&</ul>")
+                    .replace(/\n{2,}/g, "</p><p>")
+                    .replace(/^(?!<[a-z])(.+)$/gm, "$1")
+                    .trim();
+            }
+
             function mount(bodyEl) {
-                const noteList = Utils.el("div", { class: "grow scroll-y", style: { padding: "8px 12px" } });
-                const mainWrap = Utils.el("div", { class: "split-main scroll-y", style: { padding: "16px" } });
-                const toolbar = Utils.el("div", { class: "app-toolbar" }, [
-                    Utils.el("button", { class: "btn btn-primary btn-sm", html: Icons.svg("plus", 12) +
-                            "<span>New Note</span>", onClick: () => { createNote(); } })
+                const noteList = Utils.el("div", { class: "grow scroll-y" });
+                let selectedNoteId = null;
+                let autoSaveTimer = null;
+                let previewMode = false;
+                let searchQuery = "";
+
+                const searchInput = Utils.el("input", { class: "input", placeholder: "Search notes…", style: { flex: "1", fontSize: "11px" }, onInput: (e) => { searchQuery = e.target.value; renderNoteList(); } });
+                const newBtn = Utils.el("button", { class: "btn btn-primary btn-sm", html: Icons.svg("plus", 12) + "<span>New</span>", onClick: createNote });
+                const sidebarTop = Utils.el("div", { class: "col", style: { padding: "8px", gap: "6px", borderBottom: "1px solid var(--hairline)" } }, [
+                    Utils.el("div", { class: "row gap-2" }, [searchInput, newBtn])
                 ]);
+
+                const mainWrap = Utils.el("div", { class: "split-main", style: { display: "flex", flexDirection: "column" } });
+
                 bodyEl.appendChild(Utils.el("div", { class: "app-root" }, [
-                    toolbar,
                     Utils.el("div", { class: "app-body" }, [
-                        Utils.el("div", { class: "split-side scroll-y", style: { width: "220px", padding: "6px",
-                                borderRight: "1px solid var(--hairline)" } }, [noteList]),
+                        Utils.el("div", { class: "split-side scroll-y", style: { width: "220px", borderRight: "1px solid var(--hairline)", display: "flex", flexDirection: "column" } }, [sidebarTop, noteList]),
                         mainWrap
                     ])
                 ]));
 
-                let selectedNoteId = null;
+                function getNotes() { return StateManager.get("notes3") || []; }
+                function saveTodos(notes) { StateManager.set("notes3", notes); }
 
-                function getNotes() { return StateManager.get("notes") || []; }
+                function getWordCount(text) {
+                    return text.trim() ? text.trim().split(/\s+/).length : 0;
+                }
 
                 function renderNoteList() {
                     noteList.innerHTML = "";
-                    const notes = getNotes();
+                    let notes = getNotes();
+                    const q = searchQuery.toLowerCase();
+                    if (q) notes = notes.filter(n => (n.title + " " + n.content).toLowerCase().includes(q));
+                    // Pinned first
+                    notes = [...notes.filter(n => n.pinned), ...notes.filter(n => !n.pinned)];
                     if (!notes.length) {
-                        noteList.appendChild(Utils.el("div", { class: "text-3", style: { fontSize: "12px",
-                                    padding: "16px" } }, "No notes yet."));
+                        noteList.appendChild(Utils.el("div", { class: "text-3", style: { fontSize: "11px", padding: "16px", textAlign: "center" } }, q ? "No matching notes" : "No notes yet.\nClick + to create one."));
                         return;
                     }
                     notes.forEach((n) => {
-                        const row = Utils.el("div", { class: "note-item" + (n.id === selectedNoteId ?
-                                " selected" : ""), onClick: () => { selectedNoteId = n.id;
-                                renderNoteList();
-                                renderEditor(); } }, [
-                            Utils.el("div", { class: "note-icon", html: Icons.svg("note", 16) }),
-                            Utils.el("div", { class: "note-title" }, Utils.escapeHtml(n.title || "Untitled")),
-                            Utils.el("div", { class: "note-actions" }, [
-                                Utils.el("button", { onClick: (e) => { e.stopPropagation();
-                                        deleteNote(n.id); } }, "✕")
-                            ])
-                        ]);
+                        const preview = n.content ? n.content.replace(/[#*`>\n]/g, " ").slice(0, 60).trim() : "";
+                        const ago = Utils.timeAgo ? Utils.timeAgo(n.updatedAt) : "";
+                        const row = Utils.el("div", { class: "note-item" + (n.id === selectedNoteId ? " selected" : "") + (n.pinned ? " pinned" : ""),
+                            onClick: () => { selectedNoteId = n.id; renderNoteList(); renderEditor(); } });
+                        row.appendChild(Utils.el("div", { class: "row gap-1", style: { alignItems: "flex-start" } }, [
+                            Utils.el("div", { class: "note-icon", html: n.pinned ? "📌" : Icons.svg("note", 14) }),
+                            Utils.el("div", { class: "col grow", style: { minWidth: 0 } }, [
+                                Utils.el("div", { class: "note-title", style: { fontWeight: n.pinned ? "600" : "500" } }, Utils.escapeHtml(n.title || "Untitled")),
+                                preview ? Utils.el("div", { style: { fontSize: "10px", color: "var(--text-3)", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" } }, Utils.escapeHtml(preview)) : null,
+                                Utils.el("div", { class: "row gap-2", style: { marginTop: "2px" } }, [
+                                    n.tag ? Utils.el("span", { style: { fontSize: "9px", color: "var(--accent)", background: "var(--ink-4)", padding: "1px 5px", borderRadius: "4px" } }, n.tag) : null,
+                                ].filter(Boolean))
+                            ].filter(Boolean)),
+                            Utils.el("button", { style: { fontSize: "10px", opacity: "0.4", flex: "none", background: "none", border: "none", color: "var(--text-3)", cursor: "default" }, onClick: (e) => { e.stopPropagation(); deleteNote(n.id); } }, "✕")
+                        ]));
                         noteList.appendChild(row);
                     });
                 }
 
+                let currentTitleInput = null, currentTextarea = null;
+
                 function renderEditor() {
                     mainWrap.innerHTML = "";
                     const notes = getNotes();
-                    const note = notes.find((n) => n.id === selectedNoteId);
+                    const note = notes.find(n => n.id === selectedNoteId);
                     if (!note) {
-                        mainWrap.appendChild(Utils.el("div", { class: "empty-state" }, [
-                            Utils.el("div", { html: Icons.svg("note", 30) }),
-                            Utils.el("div", { class: "es-title" }, "Select a note"),
-                            Utils.el("div", { class: "es-sub" }, "Click a note to view or edit its content.")
+                        mainWrap.appendChild(Utils.el("div", { class: "empty-state grow" }, [
+                            Utils.el("div", { html: Icons.svg("note", 32) }),
+                            Utils.el("div", { class: "es-title" }, "Select or create a note"),
+                            Utils.el("div", { class: "es-sub" }, "Your notes are saved automatically.")
                         ]));
                         return;
                     }
-                    const titleInput = Utils.el("input", { class: "input", placeholder: "Note title",
-                        value: note.title || "", id: "note-title-input" });
-                    const contentInput = Utils.el("textarea", { class: "input", rows: "8",
-                        placeholder: "Write your note…", id: "note-content-input", value: note.content || "" });
-                    mainWrap.appendChild(Utils.el("div", { class: "col gap-3" }, [
-                        titleInput,
-                        contentInput,
-                        Utils.el("button", { class: "btn btn-sm", onClick: () => {
-                                const title = document.getElementById("note-title-input").value;
-                                const content = document.getElementById("note-content-input").value;
-                                updateNote(note.id, title, content);
-                            } }, "Save Note")
-                    ]));
+
+                    // Toolbar
+                    const previewBtn = Utils.el("button", { class: "btn btn-ghost btn-sm" + (previewMode ? " active" : ""), onClick: () => { previewMode = !previewMode; renderEditor(); } }, previewMode ? "Edit" : "Preview");
+                    const pinBtn = Utils.el("button", { class: "btn btn-ghost btn-sm", style: { fontSize: "13px" }, title: note.pinned ? "Unpin" : "Pin", onClick: () => { updateNote(note.id, { pinned: !note.pinned }); } }, note.pinned ? "📌" : "📍");
+                    const tagSelect = Utils.el("select", { class: "input", style: { fontSize: "10px", height: "26px", padding: "0 4px" }, onChange: (e) => { updateNote(note.id, { tag: e.target.value }); } });
+                    const noTagOpt = document.createElement("option"); noTagOpt.value = ""; noTagOpt.textContent = "Tag…"; tagSelect.appendChild(noTagOpt);
+                    TAGS.forEach(t => { const o = document.createElement("option"); o.value = t; o.textContent = t; if (note.tag === t) o.selected = true; tagSelect.appendChild(o); });
+                    const wordCountEl = Utils.el("span", { class: "md-word-count" }, `${getWordCount(note.content || "")} words`);
+                    const editorToolbar = Utils.el("div", { class: "app-toolbar" }, [pinBtn, tagSelect, Utils.el("div", { class: "grow" }), wordCountEl, previewBtn]);
+                    mainWrap.appendChild(editorToolbar);
+
+                    const titleInput = Utils.el("input", { class: "input", placeholder: "Title", value: note.title || "", style: { fontWeight: "600", fontSize: "16px", borderRadius: "0", border: "none", borderBottom: "1px solid var(--hairline)", background: "transparent", padding: "12px 16px" } });
+                    currentTitleInput = titleInput;
+                    mainWrap.appendChild(titleInput);
+
+                    if (previewMode) {
+                        const preview = Utils.el("div", { class: "md-preview grow scroll-y" });
+                        preview.innerHTML = simpleMarkdown(note.content || "_No content yet._");
+                        mainWrap.appendChild(preview);
+                    } else {
+                        const textarea = Utils.el("textarea", { class: "input grow", placeholder: "Write your note… (Markdown supported)", style: { border: "none", borderRadius: "0", background: "transparent", resize: "none", padding: "12px 16px", fontFamily: "var(--font-mono)", fontSize: "12.5px", lineHeight: "1.7" } });
+                        textarea.value = note.content || "";
+                        mainWrap.appendChild(textarea);
+                        currentTextarea = textarea;
+
+                        textarea.addEventListener("input", () => {
+                            wordCountEl.textContent = `${getWordCount(textarea.value)} words`;
+                            clearTimeout(autoSaveTimer);
+                            autoSaveTimer = setTimeout(() => {
+                                updateNote(note.id, { content: textarea.value });
+                            }, 600);
+                        });
+                    }
+
+                    titleInput.addEventListener("blur", () => {
+                        updateNote(note.id, { title: titleInput.value.trim() || "Untitled" });
+                    });
+                }
+
+                function updateNote(id, patch) {
+                    const notes = getNotes();
+                    const idx = notes.findIndex(n => n.id === id);
+                    if (idx !== -1) {
+                        notes[idx] = { ...notes[idx], ...patch, updatedAt: Date.now() };
+                        saveTodos(notes);
+                        renderNoteList();
+                    }
                 }
 
                 function createNote() {
                     const notes = getNotes();
-                    const newNote = { id: Utils.uid("note"), title: "Untitled", content: "", createdAt: Date.now(),
-                        updatedAt: Date.now() };
-                    StateManager.push("notes", newNote);
-                    selectedNoteId = newNote.id;
+                    const n = { id: Utils.uid("note"), title: "New Note", content: "", pinned: false, tag: "", createdAt: Date.now(), updatedAt: Date.now() };
+                    notes.unshift(n);
+                    saveTodos(notes);
+                    selectedNoteId = n.id;
                     renderNoteList();
                     renderEditor();
-                    NotificationCenter.push({ type: "success", title: "Note created", duration: 1500 });
-                }
-
-                function updateNote(id, title, content) {
-                    StateManager.update("notes", (arr) => arr.map((n) => n.id === id ? { ...n, title: title || "Untitled",
-                            content, updatedAt: Date.now() } : n));
-                    renderNoteList();
-                    renderEditor();
-                    NotificationCenter.push({ type: "info", title: "Note saved", duration: 1500 });
+                    if (currentTitleInput) { currentTitleInput.focus(); currentTitleInput.select(); }
+                    NotificationCenter.push({ type: "success", title: "Note created", duration: 1200 });
                 }
 
                 function deleteNote(id) {
-                    if (!confirm("Delete this note?")) return;
-                    StateManager.removeWhere("notes", (n) => n.id === id);
-                    if (selectedNoteId === id) selectedNoteId = null;
+                    saveTodos(getNotes().filter(n => n.id !== id));
+                    if (selectedNoteId === id) { selectedNoteId = null; }
                     renderNoteList();
                     renderEditor();
-                    NotificationCenter.push({ type: "info", title: "Note deleted", duration: 1500 });
                 }
 
+                // Seed with sample notes if empty
+                if (!getNotes().length) {
+                    const samples = [
+                        { id: Utils.uid("note"), title: "Welcome to Notes", content: "# Welcome to TITAN Ω Notes\n\nThis is a **full-featured** note-taking app with:\n\n- Markdown preview\n- Auto-save\n- Tags and pinning\n- Search\n\n## Markdown Support\n\nType `code`, **bold**, *italic*, and more.", pinned: true, tag: "📌 Pinned", createdAt: Date.now(), updatedAt: Date.now() },
+                        { id: Utils.uid("note"), title: "Research Ideas", content: "## Ideas to Explore\n\n- Emergent behavior in complex systems\n- Neural network visualization\n- Procedural generation algorithms\n\n> The boundary between order and chaos is where the most interesting things happen.", pinned: false, tag: "💡 Ideas", createdAt: Date.now() - 3600000, updatedAt: Date.now() - 3600000 },
+                    ];
+                    saveTodos(samples);
+                    selectedNoteId = samples[0].id;
+                }
                 renderNoteList();
                 renderEditor();
-                return { destroy() {} };
+                return { destroy() { clearTimeout(autoSaveTimer); } };
             }
             return { mount };
         })();
@@ -9504,143 +10484,274 @@ const WindowGeometry = (() => {
         /* ==== js/apps/musicplayer.js ==== */
         "use strict";
         /******************************************************************
-         * [APP:MUSICPLAYER] — Simple music player with playlist
+         * [APP:MUSICPLAYER] — Music player with Web Audio synthesizer + visualizer
          ******************************************************************/
         const MusicPlayerApp = (() => {
             const PLAYLIST = [
-                { title: "Chillwave Dreams", artist: "Astral" },
-                { title: "Neon Lights", artist: "Synthia" },
-                { title: "Midnight Drift", artist: "Lunar" },
-                { title: "Solar Winds", artist: "Orbit" },
-                { title: "Echoes", artist: "Pulse" },
-                { title: "Static Glow", artist: "Void" }
+                { title: "Chillwave Dreams", artist: "Astral", key: "C", scale: "minor", bpm: 72, color: "#57D9C4", emoji: "🌊" },
+                { title: "Neon Lights", artist: "Synthia", key: "F#", scale: "major", bpm: 88, color: "#E0708A", emoji: "🌆" },
+                { title: "Midnight Drift", artist: "Lunar", key: "A", scale: "minor", bpm: 60, color: "#8B85E0", emoji: "🌙" },
+                { title: "Solar Winds", artist: "Orbit", key: "G", scale: "major", bpm: 96, color: "#C9A468", emoji: "☀️" },
+                { title: "Echoes", artist: "Pulse", key: "D", scale: "minor", bpm: 76, color: "#87CEEB", emoji: "🔊" },
+                { title: "Static Glow", artist: "Void", key: "E", scale: "minor", bpm: 84, color: "#A0E0A0", emoji: "✨" },
+                { title: "Aurora Protocol", artist: "Nebula", key: "Bb", scale: "major", bpm: 64, color: "#DDA0DD", emoji: "🌌" },
+                { title: "Quantum Drift", artist: "Axiom", key: "C#", scale: "minor", bpm: 110, color: "#FFD700", emoji: "⚡" },
             ];
 
             function mount(bodyEl) {
                 let currentIndex = 0;
                 let playing = false;
                 let audioCtx = null;
-                let gainNode = null;
-                let oscillator = null;
-                let volume = 0.5;
+                let masterGain = null;
+                let scheduledNodes = [];
+                let nextNoteTime = 0;
+                let scheduleAheadTime = 0.1;
+                let scheduleInterval = null;
+                let vizRaf = null;
+                let analyser = null;
+                let vizDataArray = null;
+                let volume = 0.55;
+                let shuffle = false;
+                let loopMode = false;
+                let currentBeat = 0;
 
-                const playBtn = Utils.el("button", { class: "btn", html: Icons.svg("play", 18), id: "player-play" });
-                const prevBtn = Utils.el("button", { class: "btn", html: Icons.svg("chevronR", 14) + Icons.svg(
-                        "chevronR", 14), style: { transform: "scaleX(-1)" } });
-                const nextBtn = Utils.el("button", { class: "btn", html: Icons.svg("chevronR", 14) + Icons.svg(
-                        "chevronR", 14) });
-                const volumeSlider = Utils.el("input", { type: "range", class: "slider volume-slider", min: "0",
-                    max: "1", step: "0.01", value: String(volume) });
-                const trackInfo = Utils.el("div", { class: "text-2", style: { fontSize: "14px", fontWeight: "500" } },
-                    "Select a song");
-                const artistInfo = Utils.el("div", { class: "text-3", style: { fontSize: "12px" } }, "");
+                // Scale definitions: intervals in semitones from root
+                const SCALES = {
+                    minor:  [0, 2, 3, 5, 7, 8, 10, 12, 14, 15],
+                    major:  [0, 2, 4, 5, 7, 9, 11, 12, 14, 16],
+                };
+                const NOTE_NAMES = { "C": 261.63, "C#": 277.18, "D": 293.66, "D#": 311.13, "E": 329.63, "F": 349.23, "F#": 369.99, "G": 392.00, "G#": 415.30, "A": 440.00, "A#": 466.16, "Bb": 466.16, "B": 493.88 };
 
-                const controls = Utils.el("div", { class: "player-controls" }, [
-                    prevBtn,
-                    playBtn,
-                    nextBtn,
-                    Utils.el("div", { style: { flex: "1", display: "flex", flexDirection: "column",
-                            marginLeft: "12px" } }, [trackInfo, artistInfo]),
-                    Utils.el("div", { class: "row gap-2" }, [
-                        Utils.el("span", { class: "text-3", style: { fontSize: "11px" } }, "Vol"),
-                        volumeSlider
-                    ])
+                function getScaleFreqs(keyName, scaleName) {
+                    const root = NOTE_NAMES[keyName] || 261.63;
+                    return (SCALES[scaleName] || SCALES.minor).map(s => root * Math.pow(2, s / 12));
+                }
+
+                // Web Audio setup
+                function ensureAudio() {
+                    if (audioCtx) return;
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    masterGain = audioCtx.createGain();
+                    masterGain.gain.value = volume;
+                    analyser = audioCtx.createAnalyser();
+                    analyser.fftSize = 256;
+                    vizDataArray = new Uint8Array(analyser.frequencyBinCount);
+                    masterGain.connect(analyser);
+                    analyser.connect(audioCtx.destination);
+                }
+
+                function scheduleNote(freq, waveform, startTime, duration, vol = 0.15) {
+                    const osc = audioCtx.createOscillator();
+                    const envGain = audioCtx.createGain();
+                    osc.type = waveform;
+                    osc.frequency.value = freq;
+                    osc.connect(envGain);
+                    envGain.connect(masterGain);
+                    envGain.gain.setValueAtTime(0, startTime);
+                    envGain.gain.linearRampToValueAtTime(vol, startTime + 0.02);
+                    envGain.gain.linearRampToValueAtTime(vol * 0.6, startTime + duration * 0.3);
+                    envGain.gain.linearRampToValueAtTime(0, startTime + duration - 0.02);
+                    osc.start(startTime);
+                    osc.stop(startTime + duration);
+                    scheduledNodes.push(osc);
+                    osc.onended = () => { scheduledNodes = scheduledNodes.filter(n => n !== osc); };
+                    return osc;
+                }
+
+                // Multi-voice melodic sequencer
+                function scheduleSong() {
+                    const song = PLAYLIST[currentIndex];
+                    const freqs = getScaleFreqs(song.key, song.scale);
+                    const bps = song.bpm / 60;
+                    const beatDur = 1 / bps;
+                    const PATTERNS = {
+                        0: [0, 2, 4, 7, 4, 2, 5, 3], 1: [0, 4, 7, 2, 5, 0, 4, 6],
+                        2: [0, 3, 5, 7, 5, 3, 0, 2], 3: [2, 4, 7, 9, 7, 4, 2, 0],
+                        4: [0, 2, 3, 5, 7, 5, 3, 2], 5: [0, 5, 4, 2, 3, 5, 7, 5],
+                        6: [0, 4, 7, 9, 7, 5, 4, 2], 7: [0, 3, 7, 10, 7, 3, 5, 4],
+                    };
+                    const melody = PATTERNS[currentIndex % 8];
+                    const bassPattern = melody.map(i => Math.max(0, i - 7));
+
+                    while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
+                        const patIdx = currentBeat % melody.length;
+                        const melIdx = melody[patIdx] % freqs.length;
+                        const bassIdx = bassPattern[patIdx] % freqs.length;
+
+                        // Melody voice (triangle)
+                        const melFreq = freqs[melIdx] * (currentBeat % 16 < 8 ? 2 : 3);
+                        scheduleNote(melFreq, "triangle", nextNoteTime, beatDur * 0.8, 0.12);
+
+                        // Bass voice (sawtooth at octave below)
+                        if (currentBeat % 2 === 0) {
+                            scheduleNote(freqs[bassIdx] / 2, "sawtooth", nextNoteTime, beatDur * 1.6, 0.08);
+                        }
+
+                        // Pad voice (sine, chord tones)
+                        if (currentBeat % 4 === 0) {
+                            [0, 4, 7].forEach((interval, vi) => {
+                                const padFreq = freqs[(melIdx + interval) % freqs.length];
+                                scheduleNote(padFreq, "sine", nextNoteTime + vi * 0.04, beatDur * 3.5, 0.05);
+                            });
+                        }
+
+                        // Hi-hat (noise-like)
+                        if (currentBeat % 2 === 1) {
+                            scheduleNote(freqs[2] * 8, "square", nextNoteTime, 0.05, 0.02);
+                        }
+
+                        nextNoteTime += beatDur;
+                        currentBeat++;
+                    }
+                }
+
+                function stopAllNodes() {
+                    if (scheduleInterval) { clearInterval(scheduleInterval); scheduleInterval = null; }
+                    scheduledNodes.forEach(n => { try { n.stop(); } catch(e) {} });
+                    scheduledNodes = [];
+                }
+
+                function startPlayback() {
+                    ensureAudio();
+                    if (audioCtx.state === "suspended") audioCtx.resume();
+                    stopAllNodes();
+                    nextNoteTime = audioCtx.currentTime + 0.05;
+                    currentBeat = 0;
+                    scheduleInterval = setInterval(scheduleSong, 25);
+                    playing = true;
+                    playBtn.innerHTML = Icons.svg("pause", 18);
+                    playBtn.classList.add("playing");
+                    startVizLoop();
+                    renderPlaylist();
+                    updateNowPlaying();
+                }
+
+                function stopPlayback() {
+                    stopAllNodes();
+                    if (vizRaf) { cancelAnimationFrame(vizRaf); vizRaf = null; }
+                    playing = false;
+                    playBtn.innerHTML = Icons.svg("play", 18);
+                    playBtn.classList.remove("playing");
+                    renderPlaylist();
+                }
+
+                function togglePlay() {
+                    if (playing) stopPlayback(); else startPlayback();
+                }
+
+                // Waveform visualizer
+                const vizCanvas = Utils.el("canvas", { style: { width: "100%", height: "60px", display: "block", borderRadius: "var(--r-sm)", background: "rgba(0,0,0,0.2)" } });
+                function startVizLoop() {
+                    if (vizRaf) cancelAnimationFrame(vizRaf);
+                    const song = PLAYLIST[currentIndex];
+                    function draw() {
+                        if (!playing) return;
+                        vizRaf = requestAnimationFrame(draw);
+                        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                        const rect = vizCanvas.getBoundingClientRect();
+                        if (rect.width === 0) return;
+                        if (vizCanvas.width !== Math.round(rect.width * dpr)) { vizCanvas.width = Math.round(rect.width * dpr); vizCanvas.height = Math.round(rect.height * dpr); }
+                        const ctx2 = vizCanvas.getContext("2d");
+                        ctx2.setTransform(dpr, 0, 0, dpr, 0, 0);
+                        const w = rect.width, h = rect.height;
+                        ctx2.clearRect(0, 0, w, h);
+                        if (analyser) {
+                            analyser.getByteTimeDomainData(vizDataArray);
+                            ctx2.beginPath();
+                            ctx2.strokeStyle = song.color || "#57D9C4";
+                            ctx2.lineWidth = 1.5;
+                            ctx2.shadowColor = song.color || "#57D9C4";
+                            ctx2.shadowBlur = 8;
+                            const sliceW = w / vizDataArray.length;
+                            let x = 0;
+                            for (let i = 0; i < vizDataArray.length; i++) {
+                                const v = vizDataArray[i] / 128.0;
+                                const y = (v * h) / 2;
+                                if (i === 0) ctx2.moveTo(x, y); else ctx2.lineTo(x, y);
+                                x += sliceW;
+                            }
+                            ctx2.lineTo(w, h / 2);
+                            ctx2.stroke();
+                            ctx2.shadowBlur = 0;
+
+                            // Frequency bars
+                            analyser.getByteFrequencyData(vizDataArray);
+                            const barW = Math.max(2, w / 64);
+                            for (let i = 0; i < 64; i++) {
+                                const barH = (vizDataArray[i] / 255) * h * 0.5;
+                                const alpha = 0.18 + (vizDataArray[i] / 255) * 0.5;
+                                ctx2.fillStyle = song.color ? song.color.replace("#", "rgba(").split("").join("") : `rgba(87,217,196,${alpha})`;
+                                ctx2.globalAlpha = alpha;
+                                ctx2.fillRect(i * barW + 1, h - barH, barW - 1, barH);
+                            }
+                            ctx2.globalAlpha = 1;
+                        }
+                    }
+                    draw();
+                }
+
+                // Now-playing display
+                const albumArt = Utils.el("div", { style: { width: "52px", height: "52px", borderRadius: "var(--r-md)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "28px", flexShrink: "0", background: "var(--ink-3)", border: "1px solid var(--hairline)" } });
+                const trackInfo = Utils.el("div", { style: { fontWeight: "600", fontSize: "13px", color: "var(--text-1)" } }, "Select a song");
+                const artistInfo = Utils.el("div", { style: { fontSize: "11px", color: "var(--text-3)", marginTop: "2px" } }, "");
+                const bpmInfo = Utils.el("div", { style: { fontSize: "10px", color: "var(--text-3)", fontFamily: "var(--font-mono)", marginTop: "4px" } }, "");
+                const nowPlayingInfo = Utils.el("div", { class: "col grow", style: { minWidth: 0 } }, [trackInfo, artistInfo, bpmInfo]);
+
+                const playBtn = Utils.el("button", { class: "btn", style: { width: "44px", height: "44px", borderRadius: "50%", background: "var(--accent)", color: "var(--text-inv)", flexShrink: "0" }, html: Icons.svg("play", 18), onClick: togglePlay });
+                const prevBtn = Utils.el("button", { class: "btn btn-ghost btn-sm", html: "⏮", onClick: () => { currentIndex = (currentIndex - 1 + PLAYLIST.length) % PLAYLIST.length; startPlayback(); } });
+                const nextBtn = Utils.el("button", { class: "btn btn-ghost btn-sm", html: "⏭", onClick: () => { currentIndex = (currentIndex + 1) % PLAYLIST.length; startPlayback(); } });
+                const shuffleBtn = Utils.el("button", { class: "btn btn-ghost btn-sm", html: "🔀", onClick: () => { shuffle = !shuffle; shuffleBtn.style.opacity = shuffle ? "1" : "0.4"; } });
+                const loopBtn = Utils.el("button", { class: "btn btn-ghost btn-sm", html: "🔁", onClick: () => { loopMode = !loopMode; loopBtn.style.opacity = loopMode ? "1" : "0.4"; } });
+                shuffleBtn.style.opacity = "0.4";
+                loopBtn.style.opacity = "0.4";
+                const volumeSlider = Utils.el("input", { type: "range", class: "slider volume-slider", min: "0", max: "1", step: "0.01", value: String(volume), onInput: (e) => { volume = parseFloat(e.target.value); if (masterGain) masterGain.gain.value = volume; } });
+
+                const controls = Utils.el("div", { class: "player-controls", style: { flexDirection: "column", gap: "12px" } }, [
+                    Utils.el("div", { class: "row gap-3", style: { alignItems: "center" } }, [albumArt, nowPlayingInfo]),
+                    vizCanvas,
+                    Utils.el("div", { class: "row gap-2", style: { justifyContent: "center", alignItems: "center" } }, [prevBtn, shuffleBtn, playBtn, loopBtn, nextBtn]),
+                    Utils.el("div", { class: "row gap-2", style: { alignItems: "center" } }, [Utils.el("span", { style: { fontSize: "10px", color: "var(--text-3)" } }, "🔈"), volumeSlider, Utils.el("span", { style: { fontSize: "10px", color: "var(--text-3)" } }, "🔊")]),
                 ]);
 
                 const playlistEl = Utils.el("div", { class: "playlist" });
                 const wrap = Utils.el("div", { class: "music-player-wrap" }, [controls, playlistEl]);
                 bodyEl.appendChild(Utils.el("div", { class: "app-root" }, [wrap]));
 
+                function updateNowPlaying() {
+                    const song = PLAYLIST[currentIndex];
+                    albumArt.textContent = song.emoji || "🎵";
+                    albumArt.style.boxShadow = `0 0 20px ${song.color}44`;
+                    albumArt.style.background = `${song.color}22`;
+                    trackInfo.textContent = song.title;
+                    artistInfo.textContent = song.artist;
+                    bpmInfo.textContent = `♩ ${song.bpm} BPM · ${song.key} ${song.scale} · Web Audio`;
+                    trackInfo.style.color = song.color || "var(--text-1)";
+                    playBtn.style.background = song.color || "var(--accent)";
+                }
+
                 function renderPlaylist() {
                     playlistEl.innerHTML = "";
                     PLAYLIST.forEach((song, idx) => {
-                        const item = Utils.el("div", { class: "song-item" + (idx === currentIndex ? " playing" :
-                                ""), onClick: () => { currentIndex = idx;
-                                loadSong();
-                                renderPlaylist(); } }, [
-                            Utils.el("div", { class: "song-name" }, `${song.title} — ${song.artist}`)
+                        const item = Utils.el("div", { class: "song-item" + (idx === currentIndex ? " playing" : ""),
+                            onClick: () => { currentIndex = idx; if (playing) startPlayback(); else { updateNowPlaying(); renderPlaylist(); } } });
+                        item.style.borderLeft = `3px solid ${idx === currentIndex ? song.color : "transparent"}`;
+                        item.appendChild(Utils.el("div", { style: { fontSize: "16px", width: "24px", textAlign: "center" } }, song.emoji || "♪"));
+                        const info = Utils.el("div", { class: "col grow", style: { minWidth: 0 } }, [
+                            Utils.el("div", { class: "song-name" }, `${song.title}`),
+                            Utils.el("div", { style: { fontSize: "10px", color: "var(--text-3)" } }, `${song.artist} · ${song.bpm} BPM`)
                         ]);
+                        item.appendChild(info);
+                        if (idx === currentIndex && playing) item.appendChild(Utils.el("div", { style: { fontSize: "10px", color: song.color, animation: "pulse 1s infinite" } }, "▶"));
                         playlistEl.appendChild(item);
                     });
                 }
 
-                function loadSong() {
-                    const song = PLAYLIST[currentIndex];
-                    trackInfo.textContent = song.title;
-                    artistInfo.textContent = song.artist;
-                    if (playing) playSong();
-                }
-
-                function playSong() {
-                    if (!audioCtx) {
-                        audioCtx = new(window.AudioContext || window.webkitAudioContext)();
-                        gainNode = audioCtx.createGain();
-                        gainNode.gain.value = volume;
-                        gainNode.connect(audioCtx.destination);
-                    }
-                    if (audioCtx.state === "suspended") audioCtx.resume();
-
-                    // Simple tone generation based on song title
-                    const freq = 220 + (currentIndex * 30) + (currentIndex % 3) * 5;
-                    if (oscillator) { oscillator.stop();
-                        oscillator.disconnect(); }
-                    oscillator = audioCtx.createOscillator();
-                    oscillator.type = "sine";
-                    oscillator.frequency.value = freq;
-                    oscillator.connect(gainNode);
-                    oscillator.start();
-                    oscillator.loop = true;
-                    playing = true;
-                    playBtn.innerHTML = Icons.svg("pause", 18);
-                    playBtn.classList.add("playing");
-                    renderPlaylist();
-                }
-
-                function pauseSong() {
-                    if (oscillator) { oscillator.stop();
-                        oscillator.disconnect();
-                        oscillator = null; }
-                    playing = false;
-                    playBtn.innerHTML = Icons.svg("play", 18);
-                    playBtn.classList.remove("playing");
-                }
-
-                function togglePlay() {
-                    if (playing) {
-                        pauseSong();
-                    } else {
-                        if (!oscillator) playSong();
-                        else { // resume
-                            oscillator = audioCtx.createOscillator();
-                            oscillator.type = "sine";
-                            oscillator.frequency.value = 220 + (currentIndex * 30) + (currentIndex % 3) * 5;
-                            oscillator.connect(gainNode);
-                            oscillator.start();
-                            playing = true;
-                            playBtn.innerHTML = Icons.svg("pause", 18);
-                            playBtn.classList.add("playing");
-                        }
-                    }
-                }
-
-                playBtn.addEventListener("click", togglePlay);
-                prevBtn.addEventListener("click", () => { currentIndex = (currentIndex - 1 + PLAYLIST.length) % PLAYLIST
-                        .length;
-                    loadSong();
-                    renderPlaylist(); });
-                nextBtn.addEventListener("click", () => { currentIndex = (currentIndex + 1) % PLAYLIST.length;
-                    loadSong();
-                    renderPlaylist(); });
-                volumeSlider.addEventListener("input", (e) => { volume = parseFloat(e.target.value); if (gainNode) gainNode
-                        .gain.value = volume; });
-
                 renderPlaylist();
-                loadSong();
+                updateNowPlaying();
 
                 return {
                     destroy() {
-                        if (oscillator) { oscillator.stop();
-                            oscillator.disconnect(); }
+                        stopPlayback();
                         if (audioCtx) audioCtx.close().catch(() => {});
                     }
                 };
