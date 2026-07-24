@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "TITAN Ω"
+version = "1.0.0"
+id = "artifacts/titan-omega"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19292
+
+[services.development]
+run = "pnpm --filter @workspace/titan-omega run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/titan-omega", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/titan-omega/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19292"
+BASE_PATH = "/"
