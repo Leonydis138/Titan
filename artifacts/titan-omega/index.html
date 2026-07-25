@@ -4382,6 +4382,10 @@ const WindowGeometry = (() => {
                 const style = StateManager.get("wallpaperStyle");
                 if (style === "grid-field") this._drawGrid(ctx, w, h, t);
                 else if (style === "aurora") this._drawAurora(ctx, w, h, t);
+                else if (style === "constellation") this._drawConstellation(ctx, w, h, t);
+                else if (style === "matrix-rain") { this._drawMatrixRain(ctx, w, h, t); return; }
+                else if (style === "plasma") this._drawPlasma(ctx, w, h, t);
+                else if (style === "geometric") this._drawGeometric(ctx, w, h, t);
                 else {
                     for (const b of this._blobs) {
                         const tt = reduced ? 0 : t * b.speed;
@@ -4436,7 +4440,6 @@ const WindowGeometry = (() => {
                 grad.addColorStop(1, "rgba(8,11,18,0)");
                 ctx.fillStyle = grad;
                 ctx.fillRect(0, 0, w, h);
-                // undulating wave lines
                 if (!reduced) {
                     ctx.strokeStyle = "rgba(87,217,196,0.04)";
                     ctx.lineWidth = 1.5;
@@ -4444,13 +4447,155 @@ const WindowGeometry = (() => {
                         ctx.beginPath();
                         const phase = i * 0.5 + time * 0.3;
                         for (let x = 0; x < w; x += 4) {
-                            const y = h * 0.3 + Math.sin(x * 0.008 + phase) * h * 0.12 + Math.sin(x * 0.015 + phase *
-                                0.7) * h * 0.06;
-                            if (x === 0) ctx.moveTo(x, y);
-                            else ctx.lineTo(x, y);
+                            const y = h * 0.3 + Math.sin(x * 0.008 + phase) * h * 0.12 + Math.sin(x * 0.015 + phase * 0.7) * h * 0.06;
+                            if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
                         }
                         ctx.stroke();
                     }
+                }
+            }
+            _drawConstellation(ctx, w, h, t) {
+                const reduced = StateManager.get("reduceMotion");
+                const rnd = Utils.seededRandom(42);
+                const stars = Array.from({ length: 120 }, () => ({ x: rnd() * w, y: rnd() * h, r: rnd() * 1.6 + 0.3, s: rnd() * 0.3 + 0.05 }));
+                const time = reduced ? 0 : t * 0.00015;
+                // Draw constellation lines
+                ctx.strokeStyle = "rgba(201,164,104,0.06)";
+                ctx.lineWidth = 0.8;
+                for (let i = 0; i < stars.length; i++) {
+                    for (let j = i + 1; j < stars.length; j++) {
+                        const dx = stars[i].x - stars[j].x, dy = stars[i].y - stars[j].y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < 100) {
+                            ctx.beginPath();
+                            ctx.globalAlpha = (1 - dist / 100) * 0.3;
+                            ctx.moveTo(stars[i].x, stars[i].y);
+                            ctx.lineTo(stars[j].x, stars[j].y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+                ctx.globalAlpha = 1;
+                // Draw stars with twinkling
+                stars.forEach((s, i) => {
+                    const tw = !reduced ? Math.sin(time * 3 + i * 0.7) * 0.5 + 0.5 : 0.8;
+                    ctx.fillStyle = `rgba(231,233,240,${0.3 + tw * 0.5})`;
+                    ctx.beginPath();
+                    ctx.arc(s.x + (reduced ? 0 : Math.sin(time + s.s * 10) * 1.5), s.y + (reduced ? 0 : Math.cos(time * 0.8 + s.s * 8) * 1.5), s.r * (0.8 + tw * 0.4), 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                // Subtle radial glow
+                const grad = ctx.createRadialGradient(w * 0.5, h * 0.5, 0, w * 0.5, h * 0.5, Math.max(w, h) * 0.7);
+                grad.addColorStop(0, "rgba(87,217,196,0.03)");
+                grad.addColorStop(1, "rgba(8,11,18,0)");
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, w, h);
+            }
+            _drawMatrixRain(ctx, w, h, t) {
+                const reduced = StateManager.get("reduceMotion");
+                if (!this._matrixCols) {
+                    const cols = Math.floor(w / 14);
+                    this._matrixCols = Array.from({ length: cols }, (_, i) => ({
+                        y: Math.random() * h,
+                        speed: 30 + Math.random() * 60,
+                        chars: Array.from({ length: 20 }, () => String.fromCharCode(0x30A0 + Math.floor(Math.random() * 96))),
+                        bright: Math.random() > 0.85,
+                    }));
+                }
+                ctx.fillStyle = "rgba(0,3,0,0.06)";
+                ctx.fillRect(0, 0, w, h);
+                const charW = 14, charH = 16;
+                this._matrixCols.forEach((col, ci) => {
+                    const x = ci * charW;
+                    if (!reduced) col.y += col.speed * 0.016;
+                    if (col.y > h + charH * 5) col.y = -charH * 10;
+                    const numChars = Math.floor(col.y / charH);
+                    col.chars.forEach((ch, ri) => {
+                        const cy = col.y - ri * charH;
+                        if (cy < 0 || cy > h) return;
+                        const alpha = Math.max(0, 1 - ri / 20);
+                        if (ri === 0 && col.bright) {
+                            ctx.fillStyle = `rgba(180,255,180,${alpha})`;
+                        } else if (ri < 2) {
+                            ctx.fillStyle = `rgba(0,255,65,${alpha * 0.9})`;
+                        } else {
+                            ctx.fillStyle = `rgba(0,200,50,${alpha * 0.5})`;
+                        }
+                        ctx.font = `${charH - 2}px monospace`;
+                        ctx.fillText(ch, x, cy);
+                    });
+                    if (!reduced && Math.random() < 0.02) col.chars[Math.floor(Math.random() * col.chars.length)] = String.fromCharCode(0x30A0 + Math.floor(Math.random() * 96));
+                });
+            }
+            _drawPlasma(ctx, w, h, t) {
+                const reduced = StateManager.get("reduceMotion");
+                const time = reduced ? 0 : t * 0.0006;
+                const imageData = ctx.createImageData(Math.floor(w / 2), Math.floor(h / 2));
+                const data = imageData.data;
+                const W = Math.floor(w / 2), H = Math.floor(h / 2);
+                for (let y = 0; y < H; y++) {
+                    for (let x = 0; x < W; x++) {
+                        const v = Math.sin(x * 0.08 + time) + Math.sin(y * 0.06 + time * 0.7) + Math.sin((x + y) * 0.05 + time * 1.1) + Math.sin(Math.sqrt((x - W/2) ** 2 + (y - H/2) ** 2) * 0.1 - time);
+                        const n = (v + 4) / 8;
+                        const h2 = (n * 360) | 0;
+                        const s = 0.7, l = 0.15 + n * 0.15;
+                        const [r, g, b] = Utils.hslToRgb ? Utils.hslToRgb(h2 / 360, s, l) : hslToRgbLocal(h2 / 360, s, l);
+                        const i = (y * W + x) * 4;
+                        data[i] = r; data[i+1] = g; data[i+2] = b; data[i+3] = 200;
+                    }
+                }
+                function hslToRgbLocal(h, s, l) {
+                    let r, g, b;
+                    if (s === 0) { r = g = b = l; } else {
+                        const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+                        const hue2rgb = (p, q, t) => { if (t < 0) t += 1; if (t > 1) t -= 1; if (t < 1/6) return p + (q - p) * 6 * t; if (t < 0.5) return q; if (t < 2/3) return p + (q - p) * (2/3 - t) * 6; return p; };
+                        r = hue2rgb(p, q, h + 1/3); g = hue2rgb(p, q, h); b = hue2rgb(p, q, h - 1/3);
+                    }
+                    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+                }
+                ctx.putImageData(imageData, 0, 0);
+                ctx.drawImage(ctx.canvas, 0, 0, W, H, 0, 0, w, h);
+            }
+            _drawGeometric(ctx, w, h, t) {
+                const reduced = StateManager.get("reduceMotion");
+                const time = reduced ? 0 : t * 0.0003;
+                const cx = w / 2, cy = h / 2;
+                ctx.strokeStyle = "rgba(201,164,104,0.06)";
+                ctx.lineWidth = 1;
+                // Rotating nested hexagons
+                for (let ring = 1; ring <= 8; ring++) {
+                    const r = ring * Math.min(w, h) * 0.065;
+                    const rot = time * (ring % 2 === 0 ? 1 : -1) * 0.3 + ring * 0.4;
+                    const sides = ring % 3 === 0 ? 6 : ring % 3 === 1 ? 4 : 3;
+                    ctx.beginPath();
+                    for (let i = 0; i <= sides; i++) {
+                        const angle = (i / sides) * Math.PI * 2 + rot;
+                        const px = cx + Math.cos(angle) * r, py = cy + Math.sin(angle) * r;
+                        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+                // Radiating lines
+                ctx.strokeStyle = "rgba(87,217,196,0.04)";
+                for (let i = 0; i < 24; i++) {
+                    const angle = (i / 24) * Math.PI * 2 + time * 0.1;
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy);
+                    ctx.lineTo(cx + Math.cos(angle) * Math.max(w, h), cy + Math.sin(angle) * Math.max(w, h));
+                    ctx.stroke();
+                }
+                // Floating particles
+                const rnd = Utils.seededRandom(99);
+                for (let i = 0; i < 60; i++) {
+                    const angle = rnd() * Math.PI * 2 + time * (0.1 + rnd() * 0.2);
+                    const dist = rnd() * Math.min(w, h) * 0.45;
+                    const x = cx + Math.cos(angle) * dist, y = cy + Math.sin(angle) * dist;
+                    const alpha = 0.15 + Math.sin(time * 2 + i) * 0.1;
+                    ctx.fillStyle = i % 3 === 0 ? `rgba(201,164,104,${alpha})` : i % 3 === 1 ? `rgba(87,217,196,${alpha})` : `rgba(139,133,224,${alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+                    ctx.fill();
                 }
             }
         }
@@ -8497,6 +8642,38 @@ const WindowGeometry = (() => {
                         }, o.label))),
                         layoutLabel
                     ]));
+                // Wallpaper style
+                scroll.appendChild(section("Wallpaper Style", "Choose the animated desktop wallpaper.", [
+                    Utils.el("div", { class: "row gap-2", style: { flexWrap: "wrap" } }, TITAN_CONFIG.wallpaperStyles.map((s) =>
+                        Utils.el("div", { class: "chip" + (s === StateManager.get("wallpaperStyle") ? " active" : ""),
+                            onClick: (e) => {
+                                StateManager.set("wallpaperStyle", s);
+                                [...e.currentTarget.parentElement.children].forEach(c => c.classList.remove("active"));
+                                e.currentTarget.classList.add("active");
+                                NotificationCenter.push({ type: "info", title: "Wallpaper updated", message: s, duration: 1500 });
+                            } }, s)))
+                ]));
+
+                // Keyboard Shortcuts
+                scroll.appendChild(section("Keyboard Shortcuts", "Quick-access hotkeys for the workspace.", [
+                    Utils.el("div", { style: { display: "grid", gridTemplateColumns: "auto 1fr", gap: "6px 16px", fontSize: "12px" } }, [
+                        ...([
+                            ["Ctrl+K", "Open command palette"],
+                            ["Ctrl+W", "Close focused window"],
+                            ["Ctrl+Tab", "Cycle windows"],
+                            ["Ctrl+N", "New note"],
+                            ["Ctrl+T", "New terminal"],
+                            ["Ctrl+,", "Open settings"],
+                            ["F1", "Open help"],
+                            ["Right-click", "Context menu"],
+                            ["↑↑↓↓←→←→BA", "???"],
+                        ].flatMap(([key, desc]) => [
+                            Utils.el("div", { class: "font-mono", style: { background: "var(--ink-4)", padding: "2px 7px", borderRadius: "4px", fontSize: "11px", color: "var(--accent)", border: "1px solid var(--hairline)", whiteSpace: "nowrap" } }, key),
+                            Utils.el("div", { class: "text-2" }, desc),
+                        ]))
+                    ])
+                ]));
+
                 scroll.appendChild(section("About TITAN Ω", "Build information and acknowledgments.", [
                     Utils.el("div", { class: "col gap-2", style: { fontSize: "12px", color: "var(--text-2)" } }, [
                         Utils.el("div", {}, `Version: ${TITAN_CONFIG.version}`),
@@ -8504,8 +8681,9 @@ const WindowGeometry = (() => {
                         Utils.el("div", {}, `Built: ${TITAN_CONFIG.buildDate}`),
                         Utils.el("div", {}, `Creator: ${TITAN_CONFIG.author}`),
                         Utils.el("div", {}, `Contact: ${TITAN_CONFIG.email}`),
-                        Utils.el("div", { style: { marginTop: "6px" } },
-                            "A single-file computational workspace combining OS-class interaction, AI workspace, architecture explorer, knowledge graph, 3D visualization suite and simulation laboratory."
+                        Utils.el("div", {}, `Apps: ${AppRegistry.list().length} registered`),
+                        Utils.el("div", { style: { marginTop: "6px", lineHeight: "1.6" } },
+                            "A single-file computational workspace combining OS-class interaction, AI workspace, architecture explorer, knowledge graph, 3D visualization suite, simulation laboratory, markdown editor, Pomodoro timer, world clock, weather dashboard, and much more."
                             )
                     ])
                 ]));
@@ -8571,7 +8749,7 @@ const WindowGeometry = (() => {
                         content: `Enable desktop widgets and enhancements. Plugins can hook into the system state and register UI elements. Try the Desktop Clock, System Pulse, Quote Rotator, or Grid Overlay.`
                     }, {
                         title: "Themes & Preferences",
-                        content: `Visit Settings to choose from four themes (Midnight, Aurora, Solar, Obsidian), enable reduced motion, adjust window opacity, and configure rendering style.`
+                        content: `Visit Settings to choose from seven themes (Midnight, Aurora, Solar, Obsidian, Neon, Matrix, Forest), enable reduced motion, adjust window opacity, and configure rendering style. Seven wallpaper styles available: Nebula, Grid Field, Aurora, Constellation, Matrix Rain, Plasma, and Geometric.`
                     }, {
                         title: "Roadmap",
                         content: `Planned future enhancements:
@@ -9835,148 +10013,176 @@ const WindowGeometry = (() => {
         /* ==== js/apps/filemanager.js ==== */
         "use strict";
         /******************************************************************
-         * [APP:FILEMANAGER] — Virtual file explorer
-         * Stores simple text files in the workspace state.
+         * [APP:FILEMANAGER] — Virtual file explorer (enhanced with folders, preview, search)
          ******************************************************************/
         const FileManagerApp = (() => {
-            function mount(bodyEl) {
-                const fileList = Utils.el("div", { class: "grow scroll-y", style: { padding: "8px 12px" } });
-                const fileNameInput = Utils.el("input", { class: "input", placeholder: "File name…" });
-                const fileContentInput = Utils.el("textarea", { class: "input", rows: "4",
-                    placeholder: "File content…" });
-                const newBtn = Utils.el("button", { class: "btn btn-primary btn-sm", html: Icons.svg("plus", 12) +
-                        "<span>New</span>" });
-                const saveBtn = Utils.el("button", { class: "btn btn-sm", html: Icons.svg("save", 12) +
-                        "<span>Save</span>" });
-                const deleteBtn = Utils.el("button", { class: "btn btn-danger btn-sm", html: Icons.svg("trash", 12) +
-                        "<span>Delete</span>" });
-                const toolbar = Utils.el("div", { class: "app-toolbar" }, [
-                    Utils.el("div", { class: "row gap-2", style: { flex: "1" } }, [newBtn, saveBtn, deleteBtn]),
-                    Utils.el("div", { class: "grow" })
-                ]);
-                const mainWrap = Utils.el("div", { class: "split-main scroll-y", style: { padding: "16px" } });
-                bodyEl.appendChild(Utils.el("div", { class: "app-root" }, [
-                    toolbar,
-                    Utils.el("div", { class: "app-body" }, [
-                        Utils.el("div", { class: "split-side scroll-y", style: { width: "220px", padding: "6px",
-                                borderRight: "1px solid var(--hairline)" } }, [fileList]),
-                        mainWrap
-                    ])
-                ]));
+            const VIRTUAL_FS = {
+                "/": ["Documents", "Downloads", "Pictures", "Music", "code"],
+                "/Documents": [
+                    { name: "Research Notes.md", type: "md", size: "4.2 KB", content: "# Research Notes\n\n## Emergence Theory\n\nComplex behavior arising from simple rules...\n\n## Key References\n\n- Hofstadter, Gödel Escher Bach\n- Kauffman, At Home in the Universe\n- Holland, Emergence", modified: "Today 10:32" },
+                    { name: "Project Plan.txt", type: "txt", size: "1.8 KB", content: "TITAN Ω Project Plan\n====================\n\n[x] Window manager\n[x] 3D visualization\n[ ] Neural network module\n[ ] Distributed simulation\n[ ] Export pipeline", modified: "Yesterday" },
+                    { name: "Architecture.md", type: "md", size: "6.1 KB", content: "# Architecture Overview\n\nTITAN Ω is a single-file computational workspace.\n\n## Core Modules\n\n- StateManager (reactive store)\n- EventBus (pub/sub)\n- WindowManager (WM)\n- AppRegistry", modified: "Jul 22" },
+                ],
+                "/Downloads": [
+                    { name: "dataset.json", type: "json", size: "142 KB", content: '{\n  "version": "2.0",\n  "schema": "telemetry-v2",\n  "records": 8192,\n  "fields": ["timestamp","value","label","category"],\n  "metadata": { "source": "simulation", "exported": "2026-07-24" }\n}', modified: "Today 09:14" },
+                    { name: "config.json", type: "json", size: "0.9 KB", content: '{\n  "theme": "midnight",\n  "wallpaper": "nebula",\n  "bootDuration": 3200,\n  "reducedMotion": false,\n  "fontSize": 13\n}', modified: "Jul 20" },
+                ],
+                "/Pictures": [
+                    { name: "screenshot.png", type: "img", size: "284 KB", content: "[PNG Image — 1920×1080 — screenshot of TITAN Ω workspace]", modified: "Today 11:05" },
+                    { name: "wallpaper.jpg", type: "img", size: "1.2 MB", content: "[JPEG Image — 3840×2160 — deep space nebula photograph]", modified: "Jul 18" },
+                ],
+                "/Music": [
+                    { name: "ambient.mp3", type: "audio", size: "8.4 MB", content: "[MP3 Audio — 4:32 — Ambient electronic synthesizer composition]", modified: "Jul 15" },
+                    { name: "synthwave.ogg", type: "audio", size: "5.1 MB", content: "[OGG Audio — 3:18 — Synthwave composition in F# minor]", modified: "Jul 12" },
+                ],
+                "/code": [
+                    { name: "main.js", type: "js", size: "312 KB", content: "// TITAN Ω main application entry\n// Version 0.3.2 'Observatory'\n\nconst TITAN = {\n  version: '0.3.2',\n  codename: 'Observatory',\n  author: 'Juan Louw Greyling'\n};\n\n// Boot sequence initializes all core modules...", modified: "Today 12:00" },
+                    { name: "style.css", type: "css", size: "44 KB", content: "/* TITAN Ω — CSS Design System */\n\n:root {\n  --brass: #C9A468;\n  --cyan: #57D9C4;\n  --violet: #8B85E0;\n  /* ... */\n}", modified: "Today 11:55" },
+                    { name: "utils.js", type: "js", size: "18 KB", content: "// TITAN Ω utility functions\n\nconst Utils = {\n  el(tag, props, children) { /* ... */ },\n  uid(prefix) { return `${prefix}-${Math.random().toString(36).slice(2)}`; },\n  escapeHtml(s) { /* ... */ }\n};", modified: "Jul 23" },
+                    { name: "README.md", type: "md", size: "2.3 KB", content: "# TITAN Ω Codebase\n\nThis directory contains the TITAN Ω source code.\n\n## Structure\n\n- `main.js` — application entry\n- `style.css` — design system\n- `utils.js` — utility functions", modified: "Jul 20" },
+                ],
+            };
 
-                let selectedFileId = null;
+            const FILE_ICONS = { md: "📄", txt: "📝", json: "🗂", js: "⚡", css: "🎨", img: "🖼", audio: "🎵", pdf: "📑", default: "📄" };
+            const SIDEBAR_FOLDERS = [
+                { icon: "🏠", label: "Home", path: "/" },
+                { icon: "📁", label: "Documents", path: "/Documents" },
+                { icon: "📥", label: "Downloads", path: "/Downloads" },
+                { icon: "🖼", label: "Pictures", path: "/Pictures" },
+                { icon: "🎵", label: "Music", path: "/Music" },
+                { icon: "⚡", label: "Code", path: "/code" },
+            ];
+
+            function mount(bodyEl) {
+                let currentPath = "/";
+                let selectedFile = null;
+                let searchQuery = "";
+
+                // Sidebar
+                const sidebar = Utils.el("div", { class: "fm-sidebar" });
+                const sidebarBtns = {};
+                SIDEBAR_FOLDERS.forEach(f => {
+                    const btn = Utils.el("div", { class: "fm-sidebar-item", onClick: () => { currentPath = f.path; selectedFile = null; renderGrid(); } },
+                        [Utils.el("span", {}, f.icon), Utils.el("span", {}, f.label)]);
+                    sidebarBtns[f.path] = btn;
+                    sidebar.appendChild(btn);
+                });
+
+                // Breadcrumb + search
+                const breadcrumbEl = Utils.el("div", { class: "fm-breadcrumb" });
+                const searchEl = Utils.el("input", { class: "input", placeholder: "Search files…", style: { flex: "1", fontSize: "11px", marginLeft: "auto", maxWidth: "180px" }, onInput: (e) => { searchQuery = e.target.value; renderGrid(); } });
+                const headerBar = Utils.el("div", { class: "row", style: { padding: "8px 12px", borderBottom: "1px solid var(--hairline)", gap: "8px", alignItems: "center" } }, [breadcrumbEl, Utils.el("div", { class: "grow" }), searchEl]);
+
+                // File grid
+                const fileGrid = Utils.el("div", { class: "fm-file-grid grow" });
+
+                // Preview panel
+                const previewPanel = Utils.el("div", { class: "fm-preview" });
+                renderPreview(null);
+
+                // Status bar
+                const statusBar = Utils.el("div", { class: "fm-status" });
+
+                // Toolbar
+                const newFileBtn = Utils.el("button", { class: "btn btn-primary btn-sm", html: Icons.svg("plus", 12) + "<span>New File</span>", onClick: () => createFile() });
+                const toolbar = Utils.el("div", { class: "app-toolbar" }, [newFileBtn]);
+
+                const mainArea = Utils.el("div", { class: "row grow", style: { overflow: "hidden" } }, [
+                    sidebar,
+                    Utils.el("div", { class: "col grow", style: { overflow: "hidden" } }, [
+                        headerBar,
+                        Utils.el("div", { class: "row grow", style: { overflow: "hidden" } }, [fileGrid, previewPanel]),
+                        statusBar,
+                    ])
+                ]);
+                bodyEl.appendChild(Utils.el("div", { class: "app-root" }, [toolbar, mainArea]));
 
                 function getFiles() { return StateManager.get("files") || []; }
+                function setFiles(f) { StateManager.set("files", f); }
 
-                function renderFileList() {
-                    fileList.innerHTML = "";
-                    const files = getFiles();
-                    if (!files.length) {
-                        fileList.appendChild(Utils.el("div", { class: "text-3", style: { fontSize: "12px",
-                                    padding: "16px" } }, "No files yet."));
-                        return;
-                    }
-                    files.forEach((f) => {
-                        const row = Utils.el("div", { class: "file-row" + (f.id === selectedFileId ?
-                                " selected" : ""),
-                            onClick: () => { selectedFileId = f.id;
-                                renderFileList();
-                                renderEditor(); } }, [
-                            Utils.el("div", { class: "file-icon", html: Icons.svg("file", 16) }),
-                            Utils.el("div", { class: "file-name" }, Utils.escapeHtml(f.name)),
-                            Utils.el("div", { class: "file-actions" }, [
-                                Utils.el("button", { onClick: (e) => { e.stopPropagation();
-                                        deleteFile(f.id); } }, "✕")
-                            ])
-                        ]);
-                        fileList.appendChild(row);
+                function getCurrentItems() {
+                    const virtItems = VIRTUAL_FS[currentPath] || [];
+                    const userFiles = getFiles().filter(f => (f.path || "/Downloads") === currentPath);
+                    const allFiles = [
+                        ...virtItems.filter(i => typeof i === "string").map(dir => ({ name: dir, type: "dir", isDir: true })),
+                        ...virtItems.filter(i => typeof i !== "string"),
+                        ...userFiles,
+                    ];
+                    if (!searchQuery) return allFiles;
+                    return allFiles.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase()));
+                }
+
+                function renderBreadcrumb() {
+                    breadcrumbEl.innerHTML = "";
+                    const parts = currentPath.split("/").filter(Boolean);
+                    const rootBtn = Utils.el("span", { onClick: () => { currentPath = "/"; selectedFile = null; renderGrid(); } }, "Home");
+                    breadcrumbEl.appendChild(rootBtn);
+                    parts.forEach((p, i) => {
+                        breadcrumbEl.appendChild(Utils.el("span", { class: "sep" }, " › "));
+                        const partPath = "/" + parts.slice(0, i + 1).join("/");
+                        const btn = Utils.el("span", { onClick: () => { currentPath = partPath; selectedFile = null; renderGrid(); } }, p);
+                        breadcrumbEl.appendChild(btn);
                     });
+                    Object.entries(sidebarBtns).forEach(([path, btn]) => btn.classList.toggle("active", path === currentPath));
                 }
 
-                function renderEditor() {
-                    mainWrap.innerHTML = "";
-                    const files = getFiles();
-                    const file = files.find((f) => f.id === selectedFileId);
-                    if (!file) {
-                        mainWrap.appendChild(Utils.el("div", { class: "empty-state" }, [
-                            Utils.el("div", { html: Icons.svg("file", 30) }),
-                            Utils.el("div", { class: "es-title" }, "Select a file"),
-                            Utils.el("div", { class: "es-sub" }, "Click a file to view or edit its content.")
-                        ]));
+                function renderGrid() {
+                    fileGrid.innerHTML = "";
+                    renderBreadcrumb();
+                    const items = getCurrentItems();
+                    if (!items.length) {
+                        fileGrid.appendChild(Utils.el("div", { class: "empty-state", style: { gridColumn: "1/-1", padding: "30px" } }, [Utils.el("div", { class: "es-title" }, "Empty folder"), Utils.el("div", { class: "es-sub" }, "No files here.")]));
+                    }
+                    items.forEach(item => {
+                        const icon = item.isDir ? "📁" : (FILE_ICONS[item.type] || FILE_ICONS.default);
+                        const isSelected = selectedFile && selectedFile.name === item.name;
+                        const card = Utils.el("div", { class: "fm-file-item" + (isSelected ? " selected" : "") });
+                        card.appendChild(Utils.el("div", { class: "fm-file-icon" }, icon));
+                        card.appendChild(Utils.el("div", { class: "fm-file-name" }, Utils.escapeHtml(item.name)));
+                        if (item.size) card.appendChild(Utils.el("div", { class: "fm-file-size" }, item.size));
+                        card.addEventListener("click", () => {
+                            if (item.isDir) { currentPath = (currentPath === "/" ? "" : currentPath) + "/" + item.name; selectedFile = null; renderGrid(); return; }
+                            selectedFile = item; renderGrid(); renderPreview(item);
+                        });
+                        card.addEventListener("dblclick", () => { if (!item.isDir && item.content) { AppRegistry.launch("notes"); } });
+                        fileGrid.appendChild(card);
+                    });
+                    const total = items.filter(i => !i.isDir).length;
+                    const dirs = items.filter(i => i.isDir).length;
+                    statusBar.innerHTML = `<span>${total} file${total !== 1 ? "s" : ""}</span><span>${dirs} folder${dirs !== 1 ? "s" : ""}</span>${searchQuery ? `<span style="color:var(--accent)">Filtering: "${Utils.escapeHtml(searchQuery)}"</span>` : ""}`;
+                }
+
+                function renderPreview(item) {
+                    previewPanel.innerHTML = "";
+                    if (!item) {
+                        previewPanel.appendChild(Utils.el("div", { class: "text-3", style: { fontSize: "11px", textAlign: "center", paddingTop: "30px" } }, "Select a file to preview"));
                         return;
                     }
-                    mainWrap.appendChild(Utils.el("div", { class: "col gap-3" }, [
-                        Utils.el("div", { class: "row gap-2" }, [
-                            Utils.el("div", { style: { fontSize: "13px", fontWeight: "600", flex: "1" } }, Utils
-                                .escapeHtml(file.name)),
-                            Utils.el("span", { class: "text-3", style: { fontSize: "11px" } }, Utils.fmtRelative(
-                                file.updatedAt))
-                        ]),
-                        Utils.el("textarea", { class: "input", rows: "8", id: "file-editor-content",
-                            style: { fontFamily: "var(--font-mono)", fontSize: "13px" },
-                            value: file.content || "" }),
-                        Utils.el("div", { class: "row gap-2" }, [
-                            Utils.el("button", { class: "btn btn-sm", onClick: () => {
-                                    const content = document.getElementById(
-                                        "file-editor-content").value;
-                                    updateFileContent(file.id, content);
-                                } }, "Save Changes")
-                        ])
-                    ]));
+                    previewPanel.appendChild(Utils.el("div", { class: "fm-preview-icon" }, FILE_ICONS[item.type] || "📄"));
+                    previewPanel.appendChild(Utils.el("div", { class: "fm-preview-name" }, Utils.escapeHtml(item.name)));
+                    previewPanel.appendChild(Utils.el("div", { class: "fm-preview-meta" }, [item.size, item.modified].filter(Boolean).join(" · ")));
+                    if (item.content) {
+                        previewPanel.appendChild(Utils.el("div", { class: "fm-preview-content" }, Utils.escapeHtml(item.content)));
+                    }
+                    const actRow = Utils.el("div", { class: "col gap-2" });
+                    if (!item._virtual) {
+                        actRow.appendChild(Utils.el("button", { class: "btn btn-danger btn-sm", html: Icons.svg("trash", 12) + "<span>Delete</span>", onClick: () => { setFiles(getFiles().filter(f => f.name !== item.name)); selectedFile = null; renderGrid(); renderPreview(null); } }));
+                    }
+                    previewPanel.appendChild(actRow);
                 }
 
-                function createFile(name) {
-                    name = name.trim();
-                    if (!name) { NotificationCenter.push({ type: "warning", title: "Invalid name",
-                            message: "Please enter a file name." }); return; }
-                    const files = getFiles();
-                    if (files.some((f) => f.name === name)) { NotificationCenter.push({ type: "warning",
-                            title: "File exists", message: `"${name}" already exists.` }); return; }
-                    const newFile = { id: Utils.uid("file"), name, content: "", createdAt: Date.now(),
-                        updatedAt: Date.now() };
-                    StateManager.push("files", newFile);
-                    selectedFileId = newFile.id;
-                    renderFileList();
-                    renderEditor();
-                    NotificationCenter.push({ type: "success", title: "File created", message: name,
-                        duration: 2000 });
+                function createFile() {
+                    const name = prompt("File name (e.g. notes.txt):");
+                    if (!name || !name.trim()) return;
+                    const ext = name.split(".").pop();
+                    const newFile = { id: Utils.uid("file"), name: name.trim(), type: ext, size: "0 KB", content: "", path: currentPath, modified: "Just now" };
+                    setFiles([...getFiles(), newFile]);
+                    renderGrid();
+                    NotificationCenter.push({ type: "success", title: "File created", message: name, duration: 1500 });
                 }
 
-                function updateFileContent(id, content) {
-                    StateManager.update("files", (arr) => arr.map((f) => f.id === id ? { ...f, content,
-                        updatedAt: Date.now() } : f));
-                    renderFileList();
-                    renderEditor();
-                    NotificationCenter.push({ type: "info", title: "File saved", duration: 1500 });
-                }
-
-                function deleteFile(id) {
-                    if (!confirm("Delete this file?")) return;
-                    StateManager.removeWhere("files", (f) => f.id === id);
-                    if (selectedFileId === id) selectedFileId = null;
-                    renderFileList();
-                    renderEditor();
-                    NotificationCenter.push({ type: "info", title: "File deleted", duration: 1500 });
-                }
-
-                newBtn.addEventListener("click", () => {
-                    const name = prompt("Enter file name:", "newfile.txt");
-                    if (name) createFile(name);
-                });
-                saveBtn.addEventListener("click", () => {
-                    const content = document.getElementById("file-editor-content");
-                    if (content && selectedFileId) updateFileContent(selectedFileId, content.value);
-                    else NotificationCenter.push({ type: "warning", title: "No file selected",
-                        message: "Select a file to save." });
-                });
-                deleteBtn.addEventListener("click", () => {
-                    if (selectedFileId) deleteFile(selectedFileId);
-                    else NotificationCenter.push({ type: "warning", title: "No file selected",
-                        message: "Select a file to delete." });
-                });
-
-                renderFileList();
-                renderEditor();
+                renderGrid();
+                renderPreview(null);
                 return { destroy() {} };
             }
             return { mount };
@@ -10761,6 +10967,575 @@ const WindowGeometry = (() => {
 
 
 
+        /* ==== js/apps/pomodoro.js ==== */
+        "use strict";
+        /******************************************************************
+         * [APP:POMODORO] — Pomodoro timer with circular progress + Web Audio
+         ******************************************************************/
+        const PomodoroApp = (() => {
+            const MODES = [
+                { id: "work", label: "Focus", duration: 25 * 60, color: "#E0708A" },
+                { id: "short", label: "Short Break", duration: 5 * 60, color: "#57D9C4" },
+                { id: "long", label: "Long Break", duration: 15 * 60, color: "#8B85E0" },
+            ];
+            function mount(bodyEl) {
+                let modeIdx = 0, remaining = MODES[0].duration, running = false, interval = null, sessions = 0;
+                let audioCtx = null;
+
+                const canvas = Utils.el("canvas", { width: "200", height: "200", style: { width: "200px", height: "200px" } });
+                const digitsEl = Utils.el("div", { class: "pom-digits" });
+                const modeEl = Utils.el("div", { class: "pom-mode" });
+                const timeWrap = Utils.el("div", { class: "pomodoro-time" }, [digitsEl, modeEl]);
+                const ring = Utils.el("div", { class: "pomodoro-ring" }, [canvas, timeWrap]);
+
+                const dotsEl = Utils.el("div", { class: "pom-sessions" });
+                const startBtn = Utils.el("button", { class: "btn btn-primary", onClick: toggleTimer }, "Start");
+                const resetBtn = Utils.el("button", { class: "btn btn-ghost btn-sm", onClick: resetTimer }, "Reset");
+                const modeRow = Utils.el("div", { class: "row gap-2" });
+                MODES.forEach((m, i) => modeRow.appendChild(Utils.el("button", { class: "btn btn-ghost btn-sm" + (i === 0 ? " active" : ""), onClick: (e) => { setMode(i, e.currentTarget); } }, m.label)));
+
+                const wrap = Utils.el("div", { class: "pomodoro-wrap" }, [modeRow, ring, dotsEl, Utils.el("div", { class: "pom-controls" }, [startBtn, resetBtn])]);
+                bodyEl.appendChild(Utils.el("div", { class: "app-root" }, [wrap]));
+
+                function setMode(idx, btn) {
+                    modeIdx = idx;
+                    remaining = MODES[idx].duration;
+                    if (running) { clearInterval(interval); running = false; startBtn.textContent = "Start"; }
+                    [...modeRow.children].forEach(b => b.classList.remove("active"));
+                    if (btn) btn.classList.add("active");
+                    render();
+                }
+
+                function toggleTimer() {
+                    if (running) {
+                        clearInterval(interval); running = false; startBtn.textContent = "Start";
+                    } else {
+                        running = true; startBtn.textContent = "Pause";
+                        interval = setInterval(() => {
+                            remaining--;
+                            if (remaining <= 0) {
+                                clearInterval(interval); running = false; startBtn.textContent = "Start";
+                                playAlert();
+                                if (MODES[modeIdx].id === "work") { sessions++; renderDots(); }
+                                NotificationCenter.push({ type: "success", title: "Pomodoro complete! 🎉", message: MODES[modeIdx].label + " session finished.", duration: 5000 });
+                                if (MODES[modeIdx].id === "work") setMode(sessions % 4 === 0 ? 2 : 1, null);
+                                else setMode(0, null);
+                            }
+                            render();
+                        }, 1000);
+                    }
+                }
+
+                function resetTimer() {
+                    clearInterval(interval); running = false; startBtn.textContent = "Start";
+                    remaining = MODES[modeIdx].duration; render();
+                }
+
+                function playAlert() {
+                    try {
+                        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                        if (audioCtx.state === "suspended") audioCtx.resume();
+                        [440, 554, 659, 880].forEach((freq, i) => {
+                            const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+                            osc.frequency.value = freq; osc.type = "sine";
+                            g.gain.setValueAtTime(0.2, audioCtx.currentTime + i * 0.18);
+                            g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + i * 0.18 + 0.3);
+                            osc.connect(g); g.connect(audioCtx.destination);
+                            osc.start(audioCtx.currentTime + i * 0.18);
+                            osc.stop(audioCtx.currentTime + i * 0.18 + 0.35);
+                        });
+                    } catch (e) {}
+                }
+
+                function renderDots() {
+                    dotsEl.innerHTML = "";
+                    for (let i = 0; i < Math.max(sessions, 4); i++) {
+                        const dot = Utils.el("div", { class: "pom-dot" + (i < sessions ? " done" : "") });
+                        dotsEl.appendChild(dot);
+                        if (i === 3 && i < sessions - 1) { dotsEl.appendChild(Utils.el("div", { style: { width: "1px", height: "8px", background: "var(--hairline)", margin: "0 4px" } })); }
+                    }
+                }
+
+                function render() {
+                    const mode = MODES[modeIdx];
+                    const total = mode.duration;
+                    const frac = Math.max(0, remaining / total);
+                    const m = Math.floor(remaining / 60), s = remaining % 60;
+                    digitsEl.textContent = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+                    modeEl.textContent = mode.label;
+
+                    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                    const size = 200;
+                    canvas.width = size * dpr; canvas.height = size * dpr;
+                    const ctx = canvas.getContext("2d");
+                    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                    ctx.clearRect(0, 0, size, size);
+
+                    // Background ring
+                    ctx.beginPath();
+                    ctx.arc(100, 100, 88, 0, Math.PI * 2);
+                    ctx.strokeStyle = "rgba(255,255,255,0.05)";
+                    ctx.lineWidth = 10;
+                    ctx.stroke();
+
+                    // Progress arc
+                    const startAngle = -Math.PI / 2;
+                    const endAngle = startAngle + frac * Math.PI * 2;
+                    ctx.beginPath();
+                    ctx.arc(100, 100, 88, startAngle, endAngle);
+                    ctx.strokeStyle = mode.color;
+                    ctx.lineWidth = 10;
+                    ctx.lineCap = "round";
+                    ctx.shadowColor = mode.color;
+                    ctx.shadowBlur = running ? 12 : 0;
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                }
+
+                renderDots();
+                render();
+                return { destroy() { clearInterval(interval); if (audioCtx) audioCtx.close().catch(() => {}); } };
+            }
+            return { mount };
+        })();
+
+
+        /* ==== js/apps/worldclock.js ==== */
+        "use strict";
+        /******************************************************************
+         * [APP:WORLDCLOCK] — World Clock with 8 cities
+         ******************************************************************/
+        const WorldClockApp = (() => {
+            const CITIES = [
+                { name: "New York", tz: "America/New_York", flag: "🇺🇸" },
+                { name: "London", tz: "Europe/London", flag: "🇬🇧" },
+                { name: "Paris", tz: "Europe/Paris", flag: "🇫🇷" },
+                { name: "Dubai", tz: "Asia/Dubai", flag: "🇦🇪" },
+                { name: "Mumbai", tz: "Asia/Kolkata", flag: "🇮🇳" },
+                { name: "Singapore", tz: "Asia/Singapore", flag: "🇸🇬" },
+                { name: "Tokyo", tz: "Asia/Tokyo", flag: "🇯🇵" },
+                { name: "Sydney", tz: "Australia/Sydney", flag: "🇦🇺" },
+                { name: "Cape Town", tz: "Africa/Johannesburg", flag: "🇿🇦" },
+                { name: "São Paulo", tz: "America/Sao_Paulo", flag: "🇧🇷" },
+                { name: "Los Angeles", tz: "America/Los_Angeles", flag: "🇺🇸" },
+                { name: "Chicago", tz: "America/Chicago", flag: "🇺🇸" },
+            ];
+
+            function mount(bodyEl) {
+                const grid = Utils.el("div", { class: "world-clock-grid" });
+                bodyEl.appendChild(Utils.el("div", { class: "world-clock-wrap" }, [grid]));
+
+                const cards = {};
+                CITIES.forEach(city => {
+                    const timeEl = Utils.el("div", { class: "clock-time" });
+                    const dateEl = Utils.el("div", { class: "clock-date" });
+                    const fillEl = Utils.el("div", { class: "clock-day-fill" });
+                    const bar = Utils.el("div", { class: "clock-day-bar" }, [fillEl]);
+                    const card = Utils.el("div", { class: "clock-card" }, [
+                        Utils.el("div", { class: "row gap-2" }, [
+                            Utils.el("span", { style: { fontSize: "18px" } }, city.flag),
+                            Utils.el("div", { class: "col", style: { flex: "1" } }, [
+                                Utils.el("div", { class: "clock-city" }, city.name),
+                                Utils.el("div", { class: "clock-zone" }, city.tz.split("/")[1]?.replace(/_/g, " ") || city.tz),
+                            ])
+                        ]),
+                        timeEl, dateEl, bar
+                    ]);
+                    cards[city.name] = { timeEl, dateEl, fillEl };
+                    grid.appendChild(card);
+                });
+
+                function update() {
+                    const now = Date.now();
+                    CITIES.forEach(city => {
+                        try {
+                            const d = new Date(now);
+                            const opts = { timeZone: city.tz, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false };
+                            const dateOpts = { timeZone: city.tz, weekday: "short", month: "short", day: "numeric" };
+                            const timeStr = d.toLocaleTimeString("en-GB", opts);
+                            const dateStr = d.toLocaleDateString("en-GB", dateOpts);
+                            const h = parseInt(timeStr.split(":")[0]);
+                            const isDaytime = h >= 6 && h < 20;
+                            const secInDay = h * 3600 + parseInt(timeStr.split(":")[1]) * 60 + parseInt(timeStr.split(":")[2]);
+                            const dayFrac = secInDay / 86400;
+                            const c = cards[city.name];
+                            c.timeEl.textContent = timeStr;
+                            c.dateEl.textContent = dateStr;
+                            c.timeEl.style.color = isDaytime ? "var(--accent)" : "var(--violet-bright, var(--accent-3))";
+                            c.fillEl.style.width = (dayFrac * 100) + "%";
+                            c.fillEl.style.background = isDaytime ? "var(--brass)" : "var(--violet)";
+                        } catch (e) { cards[city.name].timeEl.textContent = "N/A"; }
+                    });
+                }
+
+                update();
+                const timer = setInterval(update, 1000);
+                return { destroy() { clearInterval(timer); } };
+            }
+            return { mount };
+        })();
+
+
+        /* ==== js/apps/markdowneditor.js ==== */
+        "use strict";
+        /******************************************************************
+         * [APP:MARKDOWNEDITOR] — Markdown editor with live preview
+         ******************************************************************/
+        const MarkdownEditorApp = (() => {
+            function renderMd(src) {
+                return src
+                    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                    .replace(/^#{4} (.+)$/gm, "<h4>$1</h4>").replace(/^#{3} (.+)$/gm, "<h3>$1</h3>")
+                    .replace(/^#{2} (.+)$/gm, "<h2>$1</h2>").replace(/^# (.+)$/gm, "<h1>$1</h1>")
+                    .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
+                    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*(.+?)\*/g, "<em>$1</em>")
+                    .replace(/~~(.+?)~~/g, "<del>$1</del>").replace(/`{3}[\s\S]*?`{3}/g, m => `<pre><code>${m.slice(3, -3).trim()}</code></pre>`)
+                    .replace(/`(.+?)`/g, "<code>$1</code>").replace(/^> (.+)$/gm, "<blockquote>$1</blockquote>")
+                    .replace(/^---+$/gm, "<hr>").replace(/\[(.+?)\]\((.+?)\)/g, "<a href='$2' target='_blank'>$1</a>")
+                    .replace(/!\[(.+?)\]\((.+?)\)/g, "<img alt='$1' src='$2' style='max-width:100%'>")
+                    .replace(/^\* (.+)$/gm, "<li>$1</li>").replace(/^- (.+)$/gm, "<li>$1</li>")
+                    .replace(/^\d+\. (.+)$/gm, "<li>$1</li>").replace(/(<li>[\s\S]*?<\/li>)+/g, "<ul>$&</ul>")
+                    .replace(/\n{2,}/g, "</p><p>").replace(/\n/g, "<br>")
+                    .replace(/^(?!<[a-z/])(.+)$/gm, (m) => m.trim() ? m : "");
+            }
+
+            const STARTER = `# Welcome to Markdown Editor
+
+This is a **live preview** markdown editor with side-by-side rendering.
+
+## Features
+
+- Real-time preview as you type
+- Full **Markdown** support with *italic*, **bold**, ~~strikethrough~~
+- \`inline code\` and code blocks
+- Links, images, blockquotes, lists, and tables
+- Word count and export to HTML
+
+## Code Block
+
+\`\`\`javascript
+const hello = "World";
+console.log(\`Hello, \${hello}!\`);
+\`\`\`
+
+> "The best way to predict the future is to simulate it."
+
+---
+
+## Getting Started
+
+1. Start typing in the left pane
+2. See the preview update live on the right
+3. Export your work when done`;
+
+            function mount(bodyEl) {
+                let content = StateManager.get("mdEditorContent") || STARTER;
+                let autoSaveTimer = null;
+
+                const wordCountEl = Utils.el("span", { class: "md-word-count" });
+                const exportBtn = Utils.el("button", { class: "btn btn-ghost btn-sm", onClick: exportHtml }, "Export HTML");
+                const toolbar = Utils.el("div", { class: "app-toolbar" }, [
+                    Utils.el("span", { class: "text-2", style: { fontSize: "12px", fontWeight: "600" } }, "Markdown Editor"),
+                    Utils.el("div", { class: "grow" }),
+                    wordCountEl,
+                    exportBtn,
+                ]);
+
+                const textarea = Utils.el("textarea", { class: "md-textarea", spellcheck: "false", placeholder: "Write Markdown here…" });
+                textarea.value = content;
+                const preview = Utils.el("div", { class: "md-preview" });
+
+                const leftPane = Utils.el("div", { class: "md-editor-pane" }, [
+                    Utils.el("div", { class: "md-pane-header" }, [Utils.el("span", {}, "✏️ Editor")]),
+                    textarea
+                ]);
+                const rightPane = Utils.el("div", { class: "md-editor-pane" }, [
+                    Utils.el("div", { class: "md-pane-header" }, [Utils.el("span", {}, "👁 Preview")]),
+                    preview
+                ]);
+
+                const editorArea = Utils.el("div", { class: "md-editor-wrap grow" }, [leftPane, rightPane]);
+                bodyEl.appendChild(Utils.el("div", { class: "app-root" }, [toolbar, editorArea]));
+
+                function updatePreview() {
+                    content = textarea.value;
+                    preview.innerHTML = renderMd(content) || "<p><em>Nothing to preview yet…</em></p>";
+                    const words = content.trim() ? content.trim().split(/\s+/).length : 0;
+                    const chars = content.length;
+                    wordCountEl.textContent = `${words}w · ${chars}c`;
+                }
+
+                textarea.addEventListener("input", () => {
+                    updatePreview();
+                    clearTimeout(autoSaveTimer);
+                    autoSaveTimer = setTimeout(() => StateManager.set("mdEditorContent", textarea.value), 500);
+                });
+
+                textarea.addEventListener("keydown", (e) => {
+                    if (e.key === "Tab") {
+                        e.preventDefault();
+                        const start = textarea.selectionStart, end = textarea.selectionEnd;
+                        textarea.value = textarea.value.slice(0, start) + "  " + textarea.value.slice(end);
+                        textarea.selectionStart = textarea.selectionEnd = start + 2;
+                        updatePreview();
+                    }
+                });
+
+                function exportHtml() {
+                    const html = `<!DOCTYPE html>\n<html>\n<head><meta charset="utf-8"><title>Export</title><style>body{font-family:system-ui;max-width:720px;margin:40px auto;padding:0 20px;line-height:1.7}h1,h2,h3{border-bottom:1px solid #eee;padding-bottom:8px}code{background:#f4f4f4;padding:2px 6px;border-radius:4px}pre{background:#f4f4f4;padding:16px;border-radius:8px;overflow-x:auto}blockquote{border-left:4px solid #ddd;padding:4px 16px;color:#666}</style></head>\n<body>${renderMd(textarea.value)}</body>\n</html>`;
+                    const blob = new Blob([html], { type: "text/html" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a"); a.href = url; a.download = "export.html"; a.click();
+                    URL.revokeObjectURL(url);
+                    NotificationCenter.push({ type: "success", title: "Exported to HTML", duration: 2000 });
+                }
+
+                updatePreview();
+                return { destroy() { clearTimeout(autoSaveTimer); StateManager.set("mdEditorContent", textarea.value); } };
+            }
+            return { mount };
+        })();
+
+
+        /* ==== js/apps/aichat.js ==== */
+        "use strict";
+        /******************************************************************
+         * [APP:AICHAT] — Cosmos AI Chat (local, topic-aware)
+         ******************************************************************/
+        const AIChatApp = (() => {
+            const COSMOS_NAME = "Cosmos";
+            const AVATAR = "✦";
+
+            const KB = {
+                greeting: ["Hello! I'm Cosmos, your AI companion in TITAN Ω. How can I help you explore today?", "Welcome back. I'm here to help you think, explore, and discover. What's on your mind?", "Greetings, explorer. Ready to dive into some deep questions?"],
+                help: ["TITAN Ω features a window manager, 3D visualization, simulation lab, knowledge graph, and much more. Try pressing Ctrl+K to open the command palette!", "You can launch apps from the Dock at the bottom, or use Ctrl+K for quick access. The right-click context menu also has useful options.", "Need help? Try the Architecture Atlas for a visual overview, or open the Help app for full documentation."],
+                simulation: ["The Simulation Lab supports several modes: Boids flocking, Cellular Automata, and Particle Physics. Each demonstrates emergence from simple rules.", "Emergence is fascinating — complex behavior arising from simple local interactions. The boids simulation is a beautiful example: three rules produce seemingly intelligent group behavior.", "Conway's Game of Life in the Cellular Automata module is one of the most famous examples of emergence. A Turing-complete system from just four rules."],
+                consciousness: ["Consciousness remains one of the deepest mysteries in science and philosophy. The hard problem — why there is subjective experience at all — has no consensus answer.", "Some theorists like Tononi propose Integrated Information Theory (IIT), suggesting consciousness correlates with the amount of integrated information (Φ) in a system.", "Emergent consciousness theories suggest that awareness may arise from sufficiently complex information processing — though the threshold remains unknown."],
+                philosophy: ["The map is not the territory — Alfred Korzybski's insight reminds us that our models of reality are always approximations, never the thing itself.", "Gödel's incompleteness theorems show that any sufficiently powerful formal system contains true statements it cannot prove. There are limits to what can be known within a system.", "Hofstadter's strange loops — self-referential systems that fold back on themselves — may be key to understanding consciousness, meaning, and identity."],
+                physics: ["Quantum mechanics challenges our intuitions about determinism. The double-slit experiment shows particles exist in superposition until observed.", "The universe contains roughly 10^80 atoms, yet started from a single point of infinite density. The Big Bang was not an explosion in space — it was an expansion of space itself.", "Dark matter makes up about 27% of the universe's mass-energy. We know it exists through gravitational effects, but its nature remains unknown."],
+                code: ["I can help you think through algorithms, data structures, and code architecture. What are you working on?", "Good code is clear, testable, and composed of small, single-responsibility units. What pattern are you exploring?", "The TITAN Ω codebase is entirely vanilla JS — no dependencies. Everything from the window manager to the 3D renderer is built from scratch."],
+                math: ["Mathematics is the language of the universe. From Euler's identity (e^(iπ) + 1 = 0) to the Mandelbrot set, beauty hides in abstract structures.", "The Collatz conjecture is deceptively simple: take any positive integer, if even divide by 2, if odd multiply by 3 and add 1. It always seems to reach 1 — but this has never been proven.", "Benford's Law states that in many naturally occurring datasets, the leading digit is 1 about 30% of the time. This has been used to detect fraud in financial records."],
+                default: ["That's an interesting thought. Could you elaborate? I'm here to explore ideas with you.", "Tell me more — I find this topic fascinating and would like to understand your perspective better.", "I don't have a specific answer for that, but let's think through it together. What do you already know about the subject?", "Curious question. Let me reflect on that… complexity often hides in seemingly simple questions.", "The boundaries between disciplines are where the most interesting discoveries happen. What's the connection you're seeing?"]
+            };
+
+            function classifyTopic(msg) {
+                const m = msg.toLowerCase();
+                if (/hello|hi|hey|greet|welcome/.test(m)) return "greeting";
+                if (/help|how|what is titan|feature|app|window|dock/.test(m)) return "help";
+                if (/simul|boid|cellular|particle|emergent|emergence/.test(m)) return "simulation";
+                if (/consciou|aware|sentient|experience|qualia|hard problem/.test(m)) return "consciousness";
+                if (/philosoph|meaning|truth|reality|map|gödel|hofstadter/.test(m)) return "philosophy";
+                if (/physic|quantum|relativity|universe|atom|dark matter/.test(m)) return "physics";
+                if (/code|program|algorithm|function|javascript|software/.test(m)) return "code";
+                if (/math|equation|theorem|proof|number|calculus|geometry/.test(m)) return "math";
+                return "default";
+            }
+
+            function respond(msg) {
+                const topic = classifyTopic(msg);
+                const responses = KB[topic] || KB.default;
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+
+            function mount(bodyEl) {
+                const messages = StateManager.get("chatMessages") || [{ role: "ai", text: KB.greeting[0], ts: Date.now() }];
+                let typing = false;
+
+                const messagesEl = Utils.el("div", { class: "chat-messages" });
+                const inputEl = Utils.el("textarea", { class: "chat-input", placeholder: "Ask Cosmos anything…", rows: "1" });
+                const sendBtn = Utils.el("button", { class: "btn btn-primary btn-sm", style: { flex: "none" }, html: Icons.svg("chevronR", 14) });
+                const inputRow = Utils.el("div", { class: "chat-input-row" }, [inputEl, sendBtn]);
+
+                const header = Utils.el("div", { class: "chat-ai-header" }, [
+                    Utils.el("div", { class: "chat-ai-avatar" }, AVATAR),
+                    Utils.el("div", { class: "col" }, [
+                        Utils.el("div", { style: { fontWeight: "600", fontSize: "13px" } }, COSMOS_NAME),
+                        Utils.el("div", { style: { fontSize: "11px", color: "var(--text-3)" } }, "AI Research Companion")
+                    ])
+                ]);
+
+                bodyEl.appendChild(Utils.el("div", { class: "chat-wrap" }, [header, messagesEl, inputRow]));
+
+                function fmtTime(ts) {
+                    return new Date(ts).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+                }
+
+                function addBubble(role, text, ts) {
+                    const bubble = Utils.el("div", { class: `chat-bubble ${role}` });
+                    const content = Utils.el("div", { class: "chat-bubble-content" });
+                    content.textContent = text;
+                    const meta = Utils.el("div", { class: "chat-bubble-meta" }, fmtTime(ts || Date.now()));
+                    bubble.appendChild(content);
+                    bubble.appendChild(meta);
+                    messagesEl.appendChild(bubble);
+                    messagesEl.scrollTop = messagesEl.scrollHeight;
+                    return { content };
+                }
+
+                function showTyping() {
+                    const el = Utils.el("div", { class: "chat-bubble ai" });
+                    const dots = Utils.el("div", { class: "chat-typing" }, [
+                        Utils.el("span"), Utils.el("span"), Utils.el("span")
+                    ]);
+                    el.appendChild(dots);
+                    messagesEl.appendChild(el);
+                    messagesEl.scrollTop = messagesEl.scrollHeight;
+                    return el;
+                }
+
+                function renderAll() {
+                    messagesEl.innerHTML = "";
+                    messages.forEach(m => addBubble(m.role, m.text, m.ts));
+                }
+
+                function sendMessage() {
+                    const text = inputEl.value.trim();
+                    if (!text || typing) return;
+                    const userMsg = { role: "user", text, ts: Date.now() };
+                    messages.push(userMsg);
+                    addBubble("user", text, userMsg.ts);
+                    inputEl.value = "";
+                    typing = true;
+                    const typingEl = showTyping();
+                    const delay = 600 + Math.random() * 900;
+                    setTimeout(() => {
+                        typingEl.remove();
+                        const reply = respond(text);
+                        const aiMsg = { role: "ai", text: reply, ts: Date.now() };
+                        messages.push(aiMsg);
+                        // Typewriter effect
+                        const { content } = addBubble("ai", "", aiMsg.ts);
+                        content.textContent = "";
+                        let i = 0;
+                        const typeInterval = setInterval(() => {
+                            content.textContent += reply[i++];
+                            messagesEl.scrollTop = messagesEl.scrollHeight;
+                            if (i >= reply.length) { clearInterval(typeInterval); typing = false; StateManager.set("chatMessages", messages); }
+                        }, 18);
+                    }, delay);
+                }
+
+                inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+                sendBtn.addEventListener("click", sendMessage);
+
+                renderAll();
+                return { destroy() {} };
+            }
+            return { mount };
+        })();
+
+
+        /* ==== js/apps/weather.js ==== */
+        "use strict";
+        /******************************************************************
+         * [APP:WEATHER] — Simulated weather dashboard
+         ******************************************************************/
+        const WeatherApp = (() => {
+            const CITIES = [
+                { name: "Cape Town", country: "ZA", tz: "Africa/Johannesburg", lat: -33.9, conditions: ["☀️ Sunny","⛅ Partly Cloudy","🌤 Mostly Clear","💨 Windy","🌧 Light Rain"], temps: [18, 22], humidity: [55, 70], wind: [15, 35], pressure: 1018 },
+                { name: "New York", country: "US", tz: "America/New_York", lat: 40.7, conditions: ["☁️ Cloudy","🌧 Rainy","⛅ Partly Cloudy","❄️ Snow","☀️ Clear"], temps: [8, 24], humidity: [40, 80], wind: [10, 25], pressure: 1013 },
+                { name: "Tokyo", country: "JP", tz: "Asia/Tokyo", lat: 35.7, conditions: ["☀️ Clear","🌸 Mild","🌧 Rainy","⛅ Overcast","🌤 Sunny"], temps: [10, 28], humidity: [60, 85], wind: [5, 20], pressure: 1015 },
+                { name: "London", country: "GB", tz: "Europe/London", lat: 51.5, conditions: ["🌧 Drizzle","☁️ Overcast","⛅ Partly Cloudy","🌦 Showers","💨 Windy"], temps: [5, 18], humidity: [65, 90], wind: [12, 30], pressure: 1008 },
+                { name: "Dubai", country: "AE", tz: "Asia/Dubai", lat: 25.2, conditions: ["☀️ Hot & Sunny","🌤 Hazy","💨 Dusty","🌡 Scorching","☀️ Blazing"], temps: [28, 42], humidity: [20, 60], wind: [5, 20], pressure: 1010 },
+                { name: "Sydney", country: "AU", tz: "Australia/Sydney", lat: -33.9, conditions: ["☀️ Beautiful","🌤 Sunny","⛅ Partly Cloudy","🌊 Sea Breeze","🌧 Showers"], temps: [15, 28], humidity: [50, 75], wind: [10, 25], pressure: 1016 },
+            ];
+
+            let selectedCity = 0;
+            const rnd = Utils.seededRandom(Date.now() % 9999);
+
+            function getWeather(city) {
+                const t = city.temps[0] + Math.floor(rnd() * (city.temps[1] - city.temps[0]));
+                return {
+                    temp: t, condition: city.conditions[Math.floor(rnd() * city.conditions.length)],
+                    humidity: city.humidity[0] + Math.floor(rnd() * (city.humidity[1] - city.humidity[0])),
+                    wind: city.wind[0] + Math.floor(rnd() * (city.wind[1] - city.wind[0])),
+                    pressure: city.pressure + Math.floor(rnd() * 10 - 5),
+                    feelsLike: t - 2 + Math.floor(rnd() * 5),
+                    uvIndex: Math.floor(rnd() * 11),
+                    visibility: 5 + Math.floor(rnd() * 20),
+                };
+            }
+
+            function getDayForecast(city, offset) {
+                const conditions = city.conditions;
+                const t = city.temps[0] + Math.floor(rnd() * (city.temps[1] - city.temps[0]));
+                const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+                const d = new Date(); d.setDate(d.getDate() + offset);
+                return { day: offset === 0 ? "Today" : days[d.getDay()], cond: conditions[Math.floor(rnd() * conditions.length)], temp: t };
+            }
+
+            function mount(bodyEl) {
+                const cityTabsEl = Utils.el("div", { class: "row", style: { padding: "0 20px", borderBottom: "1px solid var(--hairline)", gap: "4px", overflowX: "auto" } });
+                const heroEl = Utils.el("div", { class: "weather-hero" });
+                const detailsEl = Utils.el("div", { class: "weather-details" });
+                const forecastEl = Utils.el("div", { class: "weather-forecast" });
+                const wrap = Utils.el("div", { class: "weather-wrap" }, [cityTabsEl, heroEl, detailsEl, forecastEl]);
+                bodyEl.appendChild(Utils.el("div", { class: "app-root" }, [wrap]));
+
+                const cityBtns = [];
+                CITIES.forEach((city, i) => {
+                    const btn = Utils.el("button", { class: "btn btn-ghost btn-sm", style: { fontSize: "11px", borderRadius: "0", borderBottom: "2px solid transparent", padding: "10px 12px" }, onClick: () => { selectedCity = i; renderCity(); } }, city.name);
+                    cityBtns.push(btn);
+                    cityTabsEl.appendChild(btn);
+                });
+
+                function renderCity() {
+                    const city = CITIES[selectedCity];
+                    const wx = getWeather(city);
+                    cityBtns.forEach((b, i) => { b.style.borderBottomColor = i === selectedCity ? "var(--accent)" : "transparent"; b.style.color = i === selectedCity ? "var(--accent)" : ""; });
+
+                    heroEl.innerHTML = "";
+                    heroEl.appendChild(Utils.el("div", { class: "col" }, [
+                        Utils.el("div", { class: "weather-city-name" }, city.name),
+                        Utils.el("div", { class: "weather-desc" }, wx.condition),
+                        Utils.el("div", { style: { fontSize: "11px", color: "var(--text-3)", marginTop: "4px" } }, city.country),
+                    ]));
+                    const tempWrap = Utils.el("div", { class: "col", style: { alignItems: "flex-end" } });
+                    const tempRow = Utils.el("div", { class: "weather-temp-big" });
+                    tempRow.innerHTML = `${wx.temp}<sup>°C</sup>`;
+                    tempWrap.appendChild(tempRow);
+                    tempWrap.appendChild(Utils.el("div", { style: { fontSize: "12px", color: "var(--text-3)" } }, `Feels like ${wx.feelsLike}°C`));
+                    heroEl.appendChild(tempWrap);
+
+                    detailsEl.innerHTML = "";
+                    const details = [
+                        { label: "Humidity", value: wx.humidity, unit: "%" },
+                        { label: "Wind Speed", value: wx.wind, unit: " km/h" },
+                        { label: "Pressure", value: wx.pressure, unit: " hPa" },
+                        { label: "UV Index", value: wx.uvIndex, unit: "" },
+                        { label: "Visibility", value: wx.visibility, unit: " km" },
+                        { label: "Condition", value: wx.condition.split(" ").slice(1).join(" "), unit: "" },
+                    ];
+                    details.forEach(d => {
+                        const card = Utils.el("div", { class: "weather-detail-card" }, [
+                            Utils.el("div", { class: "weather-detail-label" }, d.label),
+                            Utils.el("div", { class: "row", style: { alignItems: "baseline", gap: "2px" } }, [
+                                Utils.el("div", { class: "weather-detail-value" }, String(d.value)),
+                                Utils.el("span", { class: "weather-detail-unit" }, d.unit),
+                            ])
+                        ]);
+                        detailsEl.appendChild(card);
+                    });
+
+                    forecastEl.innerHTML = "";
+                    for (let i = 0; i < 7; i++) {
+                        const fc = getDayForecast(city, i);
+                        const day = Utils.el("div", { class: "weather-forecast-day" + (i === 0 ? " active" : "") }, [
+                            Utils.el("div", { class: "day-name" }, fc.day),
+                            Utils.el("div", { class: "day-icon" }, fc.cond.split(" ")[0]),
+                            Utils.el("div", { class: "day-temp" }, `${fc.temp}°`),
+                        ]);
+                        forecastEl.appendChild(day);
+                    }
+                }
+
+                renderCity();
+                return { destroy() {} };
+            }
+            return { mount };
+        })();
+
+
         /* ==== js/registry.js ==== */
         "use strict";
         /******************************************************************
@@ -11002,11 +11777,66 @@ const WindowGeometry = (() => {
             title: "Music Player",
             icon: "music",
             category: "Utilities",
-            width: 560,
-            height: 400,
-            minWidth: 360,
-            minHeight: 300,
+            width: 600,
+            height: 500,
+            minWidth: 400,
+            minHeight: 360,
             mount: MusicPlayerApp.mount
+        });
+        AppRegistry.register({
+            id: "pomodoro",
+            title: "Pomodoro Timer",
+            icon: "timer",
+            category: "Utilities",
+            width: 420,
+            height: 520,
+            minWidth: 340,
+            minHeight: 440,
+            mount: PomodoroApp.mount
+        });
+        AppRegistry.register({
+            id: "world-clock",
+            title: "World Clock",
+            icon: "clock",
+            category: "Utilities",
+            width: 780,
+            height: 540,
+            minWidth: 500,
+            minHeight: 360,
+            mount: WorldClockApp.mount
+        });
+        AppRegistry.register({
+            id: "md-editor",
+            title: "Markdown Editor",
+            icon: "markdown",
+            category: "Utilities",
+            width: 900,
+            height: 620,
+            minWidth: 560,
+            minHeight: 400,
+            mount: MarkdownEditorApp.mount
+        });
+        AppRegistry.register({
+            id: "ai-chat",
+            title: "Cosmos AI",
+            icon: "ai",
+            category: "Intelligence",
+            width: 520,
+            height: 580,
+            minWidth: 360,
+            minHeight: 400,
+            mount: AIChatApp.mount
+        });
+        AppRegistry.register({
+            id: "weather",
+            title: "Weather",
+            icon: "weather",
+            category: "Utilities",
+            width: 680,
+            height: 580,
+            minWidth: 480,
+            minHeight: 400,
+            mount: WeatherApp.mount
         });
 
 
@@ -11084,6 +11914,10 @@ const WindowGeometry = (() => {
                 Dock.render();
                 ViewportMode.init();
 
+                // Konami code easter egg
+                const KONAMI = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];
+                let konamiIdx = 0;
+
                 document.addEventListener("keydown", (e) => {
                     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault();
                         CommandPalette.toggle(); }
@@ -11093,6 +11927,21 @@ const WindowGeometry = (() => {
                         AppRegistry.launch("settings"); }
                     if (e.altKey && e.key === "Tab") { e.preventDefault();
                         WindowManager.cycleFocus(e.shiftKey ? -1 : 1); }
+                    if ((e.ctrlKey || e.metaKey) && e.key === "Tab") { e.preventDefault();
+                        WindowManager.cycleFocus(e.shiftKey ? -1 : 1); }
+                    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "w") {
+                        const active = document.activeElement;
+                        const isInInput = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.tagName === "SELECT");
+                        if (!isInInput) { e.preventDefault(); WindowManager.closeFocused ? WindowManager.closeFocused() : WindowManager.minimizeFocused(); }
+                    }
+                    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "n") {
+                        const active = document.activeElement;
+                        if (!active || (active.tagName !== "INPUT" && active.tagName !== "TEXTAREA")) { e.preventDefault(); AppRegistry.launch("notes"); }
+                    }
+                    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "t") {
+                        const active = document.activeElement;
+                        if (!active || (active.tagName !== "INPUT" && active.tagName !== "TEXTAREA")) { e.preventDefault(); AppRegistry.launch("terminal"); }
+                    }
                     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "n") { e.preventDefault();
                         AppRegistry.launch("memory"); }
                     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault();
@@ -11102,6 +11951,17 @@ const WindowGeometry = (() => {
                         const data = StateManager.exportWorkspace();
                         Utils.downloadJSON(data, `titan_workspace_${new Date().toISOString().slice(0,10)}.json`);
                         NotificationCenter.push({ type: "success", title: "Workspace exported" }); }
+
+                    // Konami code
+                    if (e.key === KONAMI[konamiIdx]) {
+                        konamiIdx++;
+                        if (konamiIdx === KONAMI.length) {
+                            konamiIdx = 0;
+                            NotificationCenter.push({ type: "success", title: "🎮 KONAMI CODE!", message: "You found the Easter Egg! Launching Matrix…", duration: 4000 });
+                            StateManager.set("wallpaperStyle", "matrix-rain");
+                            setTimeout(() => AppRegistry.launch("terminal"), 1200);
+                        }
+                    } else { konamiIdx = 0; }
                 });
 
                 CommandPalette.registerCommands([
@@ -11154,8 +12014,15 @@ const WindowGeometry = (() => {
                     { title: "Open Notes", icon: "note", keywords: "notes", action: () => AppRegistry.launch("notes") },
                     { title: "Open Color Picker", icon: "color", keywords: "colors", action: () => AppRegistry.launch(
                             "color-picker") },
-                    { title: "Open Music Player", icon: "music", keywords: "music", action: () => AppRegistry.launch(
-                            "music-player") }
+                    { title: "Open Music Player", icon: "music", keywords: "music", action: () => AppRegistry.launch("music-player") },
+                    { title: "Open Pomodoro Timer", icon: "timer", keywords: "focus productivity timer", action: () => AppRegistry.launch("pomodoro") },
+                    { title: "Open World Clock", icon: "clock", keywords: "time timezone world clock", action: () => AppRegistry.launch("world-clock") },
+                    { title: "Open Markdown Editor", icon: "markdown", keywords: "markdown editor writing", action: () => AppRegistry.launch("md-editor") },
+                    { title: "Open Cosmos AI", icon: "ai", keywords: "ai chat cosmos intelligence", action: () => AppRegistry.launch("ai-chat") },
+                    { title: "Open Weather", icon: "weather", keywords: "weather forecast city", action: () => AppRegistry.launch("weather") },
+                    { title: "Cycle Wallpaper", icon: "image", keywords: "wallpaper background style", action: () => Desktop.cycleWallpaper() },
+                    { title: "Cycle Theme", icon: "sun", keywords: "theme appearance color", action: () => SettingsApp.cycleTheme() },
+                    { title: "Replay Boot Sequence", icon: "refresh", keywords: "boot restart splash", action: () => Boot.replay() },
                 ]);
 
                 StateManager.subscribe("theme", (theme) => document.documentElement.setAttribute("data-theme", theme));
