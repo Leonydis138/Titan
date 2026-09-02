@@ -164,6 +164,7 @@
             --z-topbar: 900;
             --z-tooltip: 950;
             --z-palette: 1000;
+            --z-overview: 1050;
             --z-context: 1100;
             --z-notify: 1200;
             --z-boot: 2000;
@@ -1740,6 +1741,125 @@
             gap: 5px;
         }
 
+        /* ---------- Window overview ---------- */
+        .window-overview-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: var(--z-overview);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 7vh 5vw;
+            background: rgba(4, 6, 12, 0.58);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--dur-fast), visibility var(--dur-fast);
+        }
+        .window-overview-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        .window-overview-panel {
+            width: min(980px, 90vw);
+            max-height: 78vh;
+            padding: 18px;
+            border-radius: var(--r-lg);
+            box-shadow: var(--shadow-lg);
+            overflow: auto;
+            transform: translateY(12px) scale(0.98);
+            transition: transform var(--dur-med) var(--ease-out-expo);
+        }
+        .window-overview-overlay.open .window-overview-panel {
+            transform: none;
+        }
+        .window-overview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .window-overview-title {
+            color: var(--text-1);
+            font-size: var(--fs-lg);
+            font-weight: 600;
+        }
+        .window-overview-hint {
+            color: var(--text-3);
+            font-family: var(--font-mono);
+            font-size: var(--fs-2xs);
+        }
+        .window-overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 10px;
+        }
+        .window-overview-card {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            min-width: 0;
+            padding: 12px;
+            border: 1px solid var(--hairline);
+            border-radius: var(--r-md);
+            background: rgba(255, 255, 255, 0.035);
+            color: var(--text-1);
+            text-align: left;
+            cursor: default;
+            transition: background var(--dur-fast), border-color var(--dur-fast), transform var(--dur-fast);
+        }
+        .window-overview-card:hover,
+        .window-overview-card:focus-visible {
+            background: rgba(201, 164, 104, 0.12);
+            border-color: var(--glass-border);
+            outline: none;
+            transform: translateY(-1px);
+        }
+        .window-overview-card.focused {
+            border-color: rgba(87, 217, 196, 0.42);
+            box-shadow: 0 0 0 1px rgba(87, 217, 196, 0.12);
+        }
+        .window-overview-card.minimized {
+            opacity: 0.62;
+        }
+        .window-overview-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            flex: none;
+            border-radius: var(--r-sm);
+            background: var(--ink-4);
+            color: var(--accent);
+        }
+        .window-overview-copy {
+            min-width: 0;
+            flex: 1;
+        }
+        .window-overview-card-title {
+            overflow: hidden;
+            color: var(--text-1);
+            font-size: var(--fs-sm);
+            font-weight: 600;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .window-overview-card-meta {
+            margin-top: 3px;
+            color: var(--text-3);
+            font-family: var(--font-mono);
+            font-size: var(--fs-2xs);
+        }
+        .dock-icon:focus-visible,
+        .dock-home:focus-visible,
+        .tb-btn:focus-visible,
+        .win-btn:focus-visible,
+        .cp-item:focus-visible {
+            outline: 2px solid var(--accent-2);
+            outline-offset: 3px;
+        }
+
         /* ---------- Context Menu ---------- */
         .context-menu {
             position: fixed;
@@ -2029,6 +2149,18 @@
         }
         [data-layout="mobile"] .command-palette-overlay {
             padding-top: 8vh;
+        }
+        [data-layout="mobile"] .window-overview-overlay {
+            align-items: flex-start;
+            padding: 8vh 12px 80px;
+        }
+        [data-layout="mobile"] .window-overview-panel {
+            width: 100%;
+            max-height: 82vh;
+            padding: 14px;
+        }
+        [data-layout="mobile"] .window-overview-grid {
+            grid-template-columns: 1fr;
         }
         [data-layout="mobile"] .app-body {
             flex-direction: column;
@@ -2865,6 +2997,13 @@
         <div class="snap-preview" id="snap-preview"></div>
 
         <!-- ============================================================
+        WINDOW OVERVIEW
+        ============================================================ -->
+        <div class="window-overview-overlay" id="window-overview">
+            <div class="window-overview-panel glass-solid" id="window-overview-panel"></div>
+        </div>
+
+        <!-- ============================================================
         DOCK
         ============================================================ -->
         <nav class="dock glass-solid" id="dock">
@@ -3284,9 +3423,11 @@
                     _lastSaved: null,
                     _version: TITAN_CONFIG.version,
                     firstBoot: true,
-                    todos: [],
+                    todos2: [],
+                    notes3: [],
                     files: [],
-                    notes: []
+                    mdEditorContent: "",
+                    chatMessages: []
                 };
                 this._subs = new Map();
                 this._loadFromStorage();
@@ -3299,13 +3440,23 @@
                     const raw = localStorage.getItem(TITAN_CONFIG.storage.key);
                     if (!raw) return;
                     const saved = JSON.parse(raw);
-                    if (saved._version === TITAN_CONFIG.version) {
-                        for (const k in saved) {
-                            if (k in this._state && k !== "_state" && k !== "_subs") {
-                                this._state[k] = saved[k];
-                            }
-                        }
-                    }
+                    if (!saved || typeof saved !== "object" || Array.isArray(saved)) return;
+                    // Accept older snapshots, but only copy values whose type matches
+                    // a current default. Unknown keys are intentionally ignored.
+                    if (saved.todos2 === undefined && Array.isArray(saved.todos)) saved.todos2 = saved.todos;
+                    if (saved.notes3 === undefined && Array.isArray(saved.notes)) saved.notes3 = saved.notes;
+                    Object.keys(this._state).forEach((k) => {
+                        if (!(k in saved) || k.startsWith("_")) return;
+                        const value = saved[k];
+                        const fallback = this._state[k];
+                        const valid = Array.isArray(fallback) ? Array.isArray(value) :
+                            typeof fallback === "boolean" ? typeof value === "boolean" :
+                            typeof fallback === "number" ? Number.isFinite(value) :
+                            typeof fallback === "string" ? typeof value === "string" :
+                            fallback === null ? value === null || typeof value === "object" :
+                            value !== null && typeof value === "object";
+                        if (valid) this._state[k] = value;
+                    });
                 } catch (e) { /* ignore */ }
             }
 
@@ -3364,16 +3515,18 @@
                     _lastSaved: null,
                     _version: TITAN_CONFIG.version,
                     firstBoot: true,
-                    todos: [],
+                    todos2: [],
+                    notes3: [],
                     files: [],
-                    notes: []
+                    mdEditorContent: "",
+                    chatMessages: []
                 };
                 for (const k in defaults) {
                     this._state[k] = defaults[k];
                     this._subs.get(k)?.forEach((fn) => { try { fn(defaults[k], null); } catch (e) { console.error(e); } });
                 }
-                this._saveNow();
                 localStorage.removeItem(TITAN_CONFIG.storage.key);
+                this._saveNow();
                 EventBus.emit("state:reset", null);
             }
             exportWorkspace() {
@@ -3545,6 +3698,23 @@
                 note: '<rect x="3" y="6" width="18" height="12" rx="1.6"/><path d="M8 9l8 8M8 17l8-8"/>',
                 color: '<rect x="4" y="4" width="16" height="16" rx="1.6"/><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>',
                 music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="2.5"/><circle cx="20" cy="18" r="2.5"/>',
+                timer: '<circle cx="12" cy="13" r="7.5"/><path d="M12 13V9M9 3h6M12 3v2.5M18.5 6.5l1.5-1.5"/>',
+                clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
+                markdown: '<path d="M4 5h16v14H4Z"/><path d="M7 15V9l3 3 3-3v6M16 9v6M14.5 13.5 16 15l1.5-1.5"/>',
+                ai: '<path d="m12 3 1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5Z"/><path d="m19 16 .7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7Z"/>',
+                weather: '<path d="M7.5 18.5h9a4 4 0 0 0 .5-7.97A5.5 5.5 0 0 0 6.5 12a3.3 3.3 0 0 0 1 6.5Z"/><path d="M8 5V3M4.8 6.2 3.4 4.8M15.2 6.2l1.4-1.4M4 10H2"/>',
+                image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m4 17 5-5 3.5 3 2.5-2.5 5 5"/>',
+                download: '<path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 19.5v1A1.5 1.5 0 0 0 5.5 22h13a1.5 1.5 0 0 0 1.5-1.5v-1"/>',
+                users: '<circle cx="9" cy="9" r="3"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0M16 7.5a2.5 2.5 0 0 1 0 5M16 15a5 5 0 0 1 4.5 5"/>',
+                nodeEditor: '<circle cx="6" cy="12" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><path d="m8 11 8-4M8 13l8 4"/>',
+                previous: '<path d="M6 5v14M18 6l-8 6 8 6Z"/>',
+                next: '<path d="M18 5v14M6 6l8 6-8 6Z"/>',
+                shuffle: '<path d="M3 7h3c4 0 6 10 10 10h5M17 5h2a2 2 0 0 1 2 2v1M17 19h2a2 2 0 0 0 2-2v-1M17 5l3 3-3 3M17 13l3 3-3 3"/>',
+                repeat: '<path d="M17 4l3 3-3 3M20 7H7a3 3 0 0 0-3 3M7 20l-3-3 3-3M4 17h13a3 3 0 0 0 3-3"/>',
+                volume: '<path d="M4 10v4h4l5 4V6l-5 4Z"/>',
+                volumeHigh: '<path d="M4 10v4h4l5 4V6l-5 4Z"/><path d="M16 9a5 5 0 0 1 0 6M19 6a9 9 0 0 1 0 12"/>',
+                edit: '<path d="m4 17.5-.8 3.3 3.3-.8L18.7 8.8a2.4 2.4 0 0 0-3.4-3.4Z"/><path d="m13.5 7.5 3 3"/>',
+                eye: '<path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/>',
                 // Fullscreen icons
                 fullscreen: '<path d="M8 3H3v5M21 8V3h-5M8 21H3v-5M21 16v5h-5"/>',
                 'fullscreen-exit': '<path d="M8 4v4H4M16 4v4h4M8 20v-4H4M16 20v-4h4"/>'
@@ -4118,6 +4288,35 @@ const WindowGeometry = (() => {
                 const nextId = WindowGeometry.cycleFocusOrder(arr, this.focusedId, dir);
                 if (nextId) this.focus(nextId);
             }
+            restorePersistedWindows() {
+                const saved = Array.isArray(StateManager.get("openWindows")) ? StateManager.get("openWindows") : [];
+                const positions = StateManager.get("_windowPositions") || {};
+                const candidates = saved.filter((entry) => entry && typeof entry.appId === "string").slice(0, 8);
+                const restored = [];
+                candidates.forEach((entry) => {
+                    const def = AppRegistry.get(entry.appId);
+                    if (!def || !def.singleton || [...this.windows.values()].some((w) => w.appId === entry.appId)) return;
+                    const savedRect = positions[entry.appId] || entry;
+                    const numeric = (value, fallback) => Number.isFinite(value) ? value : fallback;
+                    const win = AppRegistry.launch(entry.appId, {
+                        width: numeric(savedRect.w, def.width),
+                        height: numeric(savedRect.h, def.height),
+                        x: numeric(savedRect.x, undefined),
+                        y: numeric(savedRect.y, undefined)
+                    });
+                    if (!win) return;
+                    restored.push({ win, entry });
+                });
+                restored.forEach(({ win, entry }) => {
+                    const savedRect = positions[entry.appId] || entry;
+                    if (savedRect.maximized) this._setMaximized(win, true);
+                    if (entry.minimized || savedRect.minimized) this.minimize(win.id);
+                });
+                const focused = restored.find(({ entry }) => entry.focused) || restored.find(({ entry }) => entry.appId === StateManager.get("focusedWindow"));
+                if (focused && !focused.entry.minimized) this.focus(focused.win.id);
+                this._syncOpenList();
+                return restored.length;
+            }
             _clampAllToViewport() {
                 const b = this.bounds;
                 for (const win of this.windows.values()) {
@@ -4146,11 +4345,95 @@ const WindowGeometry = (() => {
             }
             _syncOpenList() {
                 const list = [...this.windows.values()].map((w) => ({ id: w.id, title: w.title, icon: w.icon, appId: w
-                        .appId, minimized: w.minimized, focused: w.id === this.focusedId }));
+                        .appId, minimized: w.minimized, focused: w.id === this.focusedId, x: w.x, y: w.y, w: w.w, h: w.h,
+                        maximized: w.maximized }));
+                const positions = {};
+                list.forEach((w) => { if (w.appId) positions[w.appId] = { x: w.x, y: w.y, w: w.w, h: w.h, minimized: w.minimized,
+                    maximized: w.maximized }; });
                 StateManager.set("openWindows", list);
+                StateManager.set("_windowPositions", positions);
+                StateManager.set("_openAppIds", list.map((w) => w.appId).filter(Boolean));
             }
         }
         const WindowManager = new WindowManagerClass();
+
+
+
+        /* ==== js/core/windowoverview.js ==== */
+        "use strict";
+        /******************************************************************
+         * [WINDOWOVERVIEW] — Keyboard-accessible overview of open windows
+         ******************************************************************/
+        class WindowOverviewClass {
+            constructor() {
+                this.overlay = document.getElementById("window-overview");
+                this.panel = document.getElementById("window-overview-panel");
+                // Keep initialization resilient if a partial HMR update or an
+                // embedded preview omits the static shell markup.
+                if (!this.overlay) {
+                    this.overlay = Utils.el("div", { class: "window-overview-overlay", id: "window-overview" });
+                    document.body.appendChild(this.overlay);
+                }
+                if (!this.panel) {
+                    this.panel = Utils.el("div", { class: "window-overview-panel glass-solid", id: "window-overview-panel" });
+                    this.overlay.appendChild(this.panel);
+                }
+                this.isOpen = false;
+                this.overlay.addEventListener("mousedown", (e) => { if (e.target === this.overlay) this.close(); });
+                document.addEventListener("keydown", (e) => {
+                    if (e.key === "Escape" && this.isOpen) { e.preventDefault(); this.close(); }
+                });
+            }
+            toggle() { this.isOpen ? this.close() : this.open(); }
+            open() {
+                this.isOpen = true;
+                this.render();
+                this.overlay.classList.add("open");
+                setTimeout(() => this.panel.querySelector(".window-overview-card, .window-overview-close")?.focus(), 10);
+            }
+            close() {
+                this.isOpen = false;
+                this.overlay.classList.remove("open");
+            }
+            render() {
+                this.panel.innerHTML = "";
+                const header = Utils.el("div", { class: "window-overview-header" }, [
+                    Utils.el("div", { class: "window-overview-title" }, [
+                        Utils.el("span", { html: Icons.svg("grid", 16) }),
+                        " Window overview"
+                    ]),
+                    Utils.el("div", { class: "window-overview-hint" }, "Ctrl/⌘ Tab to cycle · Esc to close")
+                ]);
+                const grid = Utils.el("div", { class: "window-overview-grid" });
+                const windows = WindowManager.list().sort((a, b) => Number(b.id === WindowManager.focusedId) - Number(a.id === WindowManager.focusedId));
+                if (!windows.length) {
+                    grid.appendChild(Utils.el("div", { class: "empty-state", style: { gridColumn: "1 / -1", padding: "36px" } }, [
+                        Utils.el("div", { html: Icons.svg("windowIcon", 30) }),
+                        Utils.el("div", { class: "es-title" }, "No open windows"),
+                        Utils.el("div", { class: "es-sub" }, "Launch an app from the Dock or press Ctrl+K.")
+                    ]));
+                } else {
+                    windows.forEach((win) => {
+                        const card = Utils.el("button", {
+                            class: `window-overview-card${win.id === WindowManager.focusedId ? " focused" : ""}${win.minimized ? " minimized" : ""}`,
+                            type: "button",
+                            "aria-label": `${win.minimized ? "Restore" : "Focus"} ${win.title}`,
+                            onClick: () => { win.minimized ? WindowManager.restore(win.id) : WindowManager.focus(win.id); this.close(); }
+                        }, [
+                            Utils.el("div", { class: "window-overview-icon", html: Icons.svg(win.icon, 18) }),
+                            Utils.el("div", { class: "window-overview-copy" }, [
+                                Utils.el("div", { class: "window-overview-card-title" }, win.title),
+                                Utils.el("div", { class: "window-overview-card-meta" }, `${win.minimized ? "Minimized" : win.id === WindowManager.focusedId ? "Focused" : "Open"} · ${win.appId || "system"}`)
+                            ])
+                        ]);
+                        grid.appendChild(card);
+                    });
+                }
+                this.panel.appendChild(header);
+                this.panel.appendChild(grid);
+            }
+        }
+        const WindowOverview = new WindowOverviewClass();
 
 
 
@@ -4632,9 +4915,16 @@ const WindowGeometry = (() => {
                     const focused = openWindows.some((w) => w.appId === app.id && w.focused);
                     const btn = Utils.el("div", { class: `dock-icon${isOpen ? " running" : ""}${focused ? " focused" :
                             ""}`, dataset: { id: app.id },
+                        role: "button",
+                        tabIndex: 0,
+                        "aria-label": app.title,
+                        title: app.title,
                         html: `${Icons.svg(app.icon, 21)}<span class="dot"></span><span class="dock-tooltip glass-solid">${Utils.escapeHtml(app.title)}</span>`
                     });
                     btn.addEventListener("click", () => this._activate(app.id));
+                    btn.addEventListener("keydown", (e) => {
+                        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); this._activate(app.id); }
+                    });
                     btn.addEventListener("contextmenu", (e) => {
                         e.preventDefault();
                         const win = (StateManager.get("openWindows") || []).find((w) => w.appId === app.id);
@@ -4779,13 +5069,17 @@ const WindowGeometry = (() => {
                 // initial state
                 updateFullscreenIcon();
 
+                const overviewBtn = Utils.el("button", { class: "tb-btn", id: "window-overview-btn",
+                    "aria-label": "Window overview", title: "Window overview (Ctrl/⌘ Tab)", html: Icons.svg("grid", 15) });
+                overviewBtn.addEventListener("click", (e) => { e.stopPropagation(); WindowOverview.toggle(); });
+
                 const bell = Utils.el("button", { class: "tb-btn notif-bell", id: "notif-bell", html: Icons.svg("bell",
                         15) });
                 bell.appendChild(Utils.el("span", { class: "notif-badge hidden", id: "notif-badge" }, "0"));
                 bell.addEventListener("click", (e) => { e.stopPropagation();
                     this._toggleNotifPanel(); });
 
-                [perf, cores, liveDot, presence, fullscreenBtn, bell].forEach((n) => this.rightEl.appendChild(n));
+                [perf, cores, liveDot, overviewBtn, presence, fullscreenBtn, bell].forEach((n) => this.rightEl.appendChild(n));
 
                 this._renderPresenceButton();
                 EventBus.on("presence:join", () => this._renderPresenceButton());
@@ -10904,10 +11198,10 @@ const WindowGeometry = (() => {
                 const nowPlayingInfo = Utils.el("div", { class: "col grow", style: { minWidth: 0 } }, [trackInfo, artistInfo, bpmInfo]);
 
                 const playBtn = Utils.el("button", { class: "btn", style: { width: "44px", height: "44px", borderRadius: "50%", background: "var(--accent)", color: "var(--text-inv)", flexShrink: "0" }, html: Icons.svg("play", 18), onClick: togglePlay });
-                const prevBtn = Utils.el("button", { class: "btn btn-ghost btn-sm", html: "⏮", onClick: () => { currentIndex = (currentIndex - 1 + PLAYLIST.length) % PLAYLIST.length; startPlayback(); } });
-                const nextBtn = Utils.el("button", { class: "btn btn-ghost btn-sm", html: "⏭", onClick: () => { currentIndex = (currentIndex + 1) % PLAYLIST.length; startPlayback(); } });
-                const shuffleBtn = Utils.el("button", { class: "btn btn-ghost btn-sm", html: "🔀", onClick: () => { shuffle = !shuffle; shuffleBtn.style.opacity = shuffle ? "1" : "0.4"; } });
-                const loopBtn = Utils.el("button", { class: "btn btn-ghost btn-sm", html: "🔁", onClick: () => { loopMode = !loopMode; loopBtn.style.opacity = loopMode ? "1" : "0.4"; } });
+                 const prevBtn = Utils.el("button", { class: "btn btn-ghost btn-sm", "aria-label": "Previous track", title: "Previous track", html: Icons.svg("previous", 16), onClick: () => { currentIndex = (currentIndex - 1 + PLAYLIST.length) % PLAYLIST.length; startPlayback(); } });
+                 const nextBtn = Utils.el("button", { class: "btn btn-ghost btn-sm", "aria-label": "Next track", title: "Next track", html: Icons.svg("next", 16), onClick: () => { currentIndex = (currentIndex + 1) % PLAYLIST.length; startPlayback(); } });
+                 const shuffleBtn = Utils.el("button", { class: "btn btn-ghost btn-sm", "aria-label": "Toggle shuffle", title: "Toggle shuffle", html: Icons.svg("shuffle", 16), onClick: () => { shuffle = !shuffle; shuffleBtn.style.opacity = shuffle ? "1" : "0.4"; } });
+                 const loopBtn = Utils.el("button", { class: "btn btn-ghost btn-sm", "aria-label": "Toggle loop", title: "Toggle loop", html: Icons.svg("repeat", 16), onClick: () => { loopMode = !loopMode; loopBtn.style.opacity = loopMode ? "1" : "0.4"; } });
                 shuffleBtn.style.opacity = "0.4";
                 loopBtn.style.opacity = "0.4";
                 const volumeSlider = Utils.el("input", { type: "range", class: "slider volume-slider", min: "0", max: "1", step: "0.01", value: String(volume), onInput: (e) => { volume = parseFloat(e.target.value); if (masterGain) masterGain.gain.value = volume; } });
@@ -10916,7 +11210,7 @@ const WindowGeometry = (() => {
                     Utils.el("div", { class: "row gap-3", style: { alignItems: "center" } }, [albumArt, nowPlayingInfo]),
                     vizCanvas,
                     Utils.el("div", { class: "row gap-2", style: { justifyContent: "center", alignItems: "center" } }, [prevBtn, shuffleBtn, playBtn, loopBtn, nextBtn]),
-                    Utils.el("div", { class: "row gap-2", style: { alignItems: "center" } }, [Utils.el("span", { style: { fontSize: "10px", color: "var(--text-3)" } }, "🔈"), volumeSlider, Utils.el("span", { style: { fontSize: "10px", color: "var(--text-3)" } }, "🔊")]),
+                     Utils.el("div", { class: "row gap-2", style: { alignItems: "center" } }, [Utils.el("span", { style: { fontSize: "10px", color: "var(--text-3)" }, html: Icons.svg("volume", 13) }), volumeSlider, Utils.el("span", { style: { fontSize: "10px", color: "var(--text-3)" }, html: Icons.svg("volumeHigh", 13) })]),
                 ]);
 
                 const playlistEl = Utils.el("div", { class: "playlist" });
@@ -11246,11 +11540,11 @@ console.log(\`Hello, \${hello}!\`);
                 const preview = Utils.el("div", { class: "md-preview" });
 
                 const leftPane = Utils.el("div", { class: "md-editor-pane" }, [
-                    Utils.el("div", { class: "md-pane-header" }, [Utils.el("span", {}, "✏️ Editor")]),
+                         Utils.el("div", { class: "md-pane-header" }, [Utils.el("span", { class: "row gap-1", html: Icons.svg("edit", 13) + "<span>Editor</span>" })]),
                     textarea
                 ]);
                 const rightPane = Utils.el("div", { class: "md-editor-pane" }, [
-                    Utils.el("div", { class: "md-pane-header" }, [Utils.el("span", {}, "👁 Preview")]),
+                         Utils.el("div", { class: "md-pane-header" }, [Utils.el("span", { class: "row gap-1", html: Icons.svg("eye", 13) + "<span>Preview</span>" })]),
                     preview
                 ]);
 
@@ -11913,6 +12207,7 @@ console.log(\`Hello, \${hello}!\`);
                 Desktop.startAmbient();
                 Dock.render();
                 ViewportMode.init();
+                WindowManager.restorePersistedWindows();
 
                 // Konami code easter egg
                 const KONAMI = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];
@@ -11972,6 +12267,8 @@ console.log(\`Hello, \${hello}!\`);
                             NotificationCenter.push({ type: "info", title: "Long-term memory cleared" }); } },
                     { title: "Cycle Wallpaper Style", icon: "layers", keywords: "wallpaper background", action: () =>
                             Desktop.cycleWallpaper() },
+                    { title: "Window Overview", icon: "grid", keywords: "windows switcher multitask focus", action: () =>
+                            WindowOverview.toggle() },
                     { title: "Open Code Editor", icon: "code", keywords: "repl javascript", action: () => AppRegistry
                             .launch("code-editor") },
                     { title: "Export Workspace", icon: "upload", keywords: "save export", action: () => {
