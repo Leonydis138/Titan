@@ -393,6 +393,7 @@
         #titan-root {
             position: fixed;
             inset: 0;
+            min-height: 100dvh;
             overflow: hidden;
         }
 
@@ -2072,10 +2073,10 @@
             --topbar-h: 46px;
         }
         [data-layout="mobile"] .window-layer {
-            bottom: var(--mobile-dock-h);
+            bottom: calc(var(--mobile-dock-h) + env(safe-area-inset-bottom));
         }
         [data-layout="mobile"] .desktop-icons {
-            bottom: var(--mobile-dock-h);
+            bottom: calc(var(--mobile-dock-h) + env(safe-area-inset-bottom));
             grid-auto-flow: row;
             grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
             grid-template-rows: none;
@@ -2094,10 +2095,10 @@
             right: 0;
             bottom: 0;
             width: 100%;
-            height: var(--mobile-dock-h);
+            height: calc(var(--mobile-dock-h) + env(safe-area-inset-bottom));
             transform: none;
             border-radius: 0;
-            padding: 0 10px;
+            padding: 0 10px env(safe-area-inset-bottom);
             box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.35);
         }
         [data-layout="mobile"] .dock-home {
@@ -2117,9 +2118,10 @@
             display: none;
         }
         [data-layout="mobile"] .dock-icon {
-            width: 42px;
-            height: 42px;
+            width: 44px;
+            height: 44px;
             transform: none !important;
+            touch-action: manipulation;
         }
         [data-layout="mobile"] .dock-tooltip {
             display: none;
@@ -3430,9 +3432,21 @@
                     chatMessages: []
                 };
                 this._subs = new Map();
+                this._saveTimer = null;
                 this._loadFromStorage();
                 this._autoSaveTimer = setInterval(() => this._saveNow(), TITAN_CONFIG.storage.autoSaveInterval);
                 window.addEventListener("beforeunload", () => this._saveNow());
+            }
+
+            _isCompatible(key, value) {
+                const fallback = this._state[key];
+                if (typeof value === "string" && value.length > 500000) return false;
+                if (Array.isArray(fallback)) return Array.isArray(value) && value.length <= 10000;
+                if (typeof fallback === "boolean") return typeof value === "boolean";
+                if (typeof fallback === "number") return Number.isFinite(value);
+                if (typeof fallback === "string") return typeof value === "string";
+                if (fallback === null) return value === null || ["object", "string", "number", "boolean"].includes(typeof value);
+                return value !== null && typeof value === "object";
             }
 
             _loadFromStorage() {
@@ -3448,36 +3462,56 @@
                     Object.keys(this._state).forEach((k) => {
                         if (!(k in saved) || k.startsWith("_")) return;
                         const value = saved[k];
-                        const fallback = this._state[k];
-                        const valid = Array.isArray(fallback) ? Array.isArray(value) :
-                            typeof fallback === "boolean" ? typeof value === "boolean" :
-                            typeof fallback === "number" ? Number.isFinite(value) :
-                            typeof fallback === "string" ? typeof value === "string" :
-                            fallback === null ? value === null || typeof value === "object" :
-                            value !== null && typeof value === "object";
-                        if (valid) this._state[k] = value;
+                        if (this._isCompatible(k, value)) this._state[k] = value;
                     });
                 } catch (e) { /* ignore */ }
             }
 
             _saveNow() {
+                clearTimeout(this._saveTimer);
+                this._saveTimer = null;
                 const data = {};
                 for (const k in this._state) { data[k] = this._state[k]; }
                 data._lastSaved = Date.now();
                 data._version = TITAN_CONFIG.version;
                 try {
-                    localStorage.setItem(TITAN_CONFIG.storage.key, JSON.stringify(data));
-                } catch (e) { /* ignore */ }
+                    const serialized = JSON.stringify(data);
+                    if (serialized.length > 1500000) {
+                        Logger.warn("State", "Workspace is too large to persist safely.");
+                        EventBus.emit("state:persistence-error", { reason: "quota", size: serialized.length });
+                        return false;
+                    }
+                    localStorage.setItem(TITAN_CONFIG.storage.key, serialized);
+                    EventBus.emit("state:persisted", { size: serialized.length });
+                    return true;
+                } catch (e) {
+                    Logger.warn("State", "Workspace persistence failed:", e?.message || e);
+                    EventBus.emit("state:persistence-error", { reason: "storage", message: e?.message || String(e) });
+                    return false;
+                }
+            }
+
+            _scheduleSave() {
+                clearTimeout(this._saveTimer);
+                this._saveTimer = setTimeout(() => this._saveNow(), 220);
             }
 
             get(key) { return key ? this._state[key] : this._state; }
             set(key, value) {
                 const prev = this._state[key];
                 if (prev === value) return;
+                if (!(key in this._state)) {
+                    Logger.warn("State", `Rejected unknown key "${key}".`);
+                    return;
+                }
+                if (!key.startsWith("_") && !this._isCompatible(key, value)) {
+                    Logger.warn("State", `Rejected invalid value for "${key}".`);
+                    return;
+                }
                 this._state[key] = value;
                 this._subs.get(key)?.forEach((fn) => { try { fn(value, prev); } catch (e) { console.error(e); } });
                 EventBus.emit("state:change", { key, value, prev });
-                this._saveNow();
+                this._scheduleSave();
             }
             update(key, updater) { this.set(key, updater(this._state[key])); }
             subscribe(key, fn) {
@@ -3544,6 +3578,10 @@
                 if (!data || typeof data !== "object") return false;
                 for (const k in data) {
                     if (k in this._state && !k.startsWith("_") && k !== "openWindows" && k !== "focusedWindow" && k !== "bootedAt") {
+                        if (!this._isCompatible(k, data[k])) {
+                            Logger.warn("State", `Skipped invalid imported value for "${k}".`);
+                            continue;
+                        }
                         this._state[k] = data[k];
                         this._subs.get(k)?.forEach((fn) => { try { fn(data[k], null); } catch (e) { console.error(e); } });
                     }
@@ -3554,6 +3592,71 @@
             }
         }
         const StateManager = new StateManagerClass();
+
+        /* ==== js/core/workspacebridge.js ==== */
+        "use strict";
+        /******************************************************************
+         * [WORKSPACEBRIDGE] — Shared document/file actions across apps
+         ******************************************************************/
+        const WorkspaceBridge = (() => {
+            function normalizePath(path) {
+                let value = String(path || "/").replace(/\\/g, "/");
+                if (!value.startsWith("/")) value = "/" + value;
+                value = value.replace(/\/+/g, "/");
+                return value.length > 1 ? value.replace(/\/$/, "") : "/";
+            }
+            function files() { return StateManager.get("files") || []; }
+            function findFile({ id, path } = {}) {
+                const normalized = path ? normalizePath(path) : null;
+                return files().find((file) => (id && file.id === id) || (normalized && normalizePath(file.path + "/" + file.name) === normalized)) || null;
+            }
+            function emit(event, payload) { EventBus.emit(event, { ...payload, ts: Date.now() }); }
+            function createFile({ name, path = "/", type, content = "" }) {
+                const cleanName = String(name || "").trim();
+                if (!cleanName) return null;
+                const cleanPath = normalizePath(path);
+                const extension = type || cleanName.split(".").pop() || "txt";
+                const file = { id: Utils.uid("file"), name: cleanName, type: extension, size: `${Math.max(0, content.length)} B`,
+                    content: String(content), path: cleanPath, modified: "Just now", updatedAt: Date.now() };
+                StateManager.set("files", [...files(), file]);
+                emit("file:created", { file });
+                return file;
+            }
+            function updateFile(id, patch = {}) {
+                const current = findFile({ id });
+                if (!current) return null;
+                const next = { ...current, ...patch, id: current.id, updatedAt: Date.now(), modified: "Just now" };
+                StateManager.set("files", files().map((file) => file.id === id ? next : file));
+                emit("file:updated", { file: next, previous: current });
+                return next;
+            }
+            function deleteFile(id) {
+                const current = findFile({ id });
+                if (!current) return false;
+                StateManager.set("files", files().filter((file) => file.id !== id));
+                emit("file:deleted", { file: current });
+                return true;
+            }
+            function openFile(file, mode = "edit") {
+                if (!file) return false;
+                emit("file:opened", { file, mode });
+                const extension = String(file.type || "").toLowerCase();
+                const appId = extension === "md" || extension === "markdown" ? "md-editor" :
+                    ["js", "ts", "css", "html", "json"].includes(extension) ? "code-editor" : "notes";
+                AppRegistry.launch(appId, { payload: { fileId: file.id, path: normalizePath(file.path + "/" + file.name), content: file.content, mode } });
+                return true;
+            }
+            function createNoteFromTodo(todo) {
+                const notes = StateManager.get("notes3") || [];
+                const note = { id: Utils.uid("note"), title: todo.text || "Task note",
+                    content: `# ${todo.text || "Task"}\n\n- Priority: ${todo.priority || "medium"}\n- Category: ${todo.category || "Uncategorized"}\n- Due: ${todo.dueDate || "No due date"}\n\nCreated from To-Do in TITAN Ω.`,
+                    pinned: false, tag: "✅ Tasks", createdAt: Date.now(), updatedAt: Date.now() };
+                StateManager.set("notes3", [note, ...notes]);
+                emit("note:created", { note, source: "todo", todo });
+                return note;
+            }
+            return { normalizePath, files, findFile, createFile, updateFile, deleteFile, openFile, createNoteFromTodo };
+        })();
 
 
 
@@ -4445,13 +4548,16 @@ const WindowGeometry = (() => {
         const PerfMonitor = (() => {
             let frames = 0,
                 lastT = performance.now(),
-                fps = 60;
+                fps = 60,
+                running = false,
+                raf = null;
             const history = [];
 
             function memInfo() { return performance.memory ? { used: performance.memory.usedJSHeapSize, limit: performance
                         .memory.jsHeapSizeLimit } : null; }
 
             function loop(t) {
+                if (!running) return;
                 frames++;
                 if (t - lastT >= 500) {
                     fps = Math.round((frames * 1000) / (t - lastT));
@@ -4463,11 +4569,22 @@ const WindowGeometry = (() => {
                     if (el) el.textContent = String(fps);
                     EventBus.emit("perf:tick", { fps, memory: memInfo(), windows: WindowManager.windows.size });
                 }
-                requestAnimationFrame(loop);
+                raf = requestAnimationFrame(loop);
             }
 
-            function start() { requestAnimationFrame(loop); }
-            return { start, getFps: () => fps, getHistory: () => history.slice(), memInfo };
+            function start() {
+                if (running || document.hidden) return;
+                running = true;
+                lastT = performance.now();
+                raf = requestAnimationFrame(loop);
+            }
+            function stop() {
+                running = false;
+                if (raf) cancelAnimationFrame(raf);
+                raf = null;
+            }
+            document.addEventListener("visibilitychange", () => document.hidden ? stop() : start());
+            return { start, stop, getFps: () => fps, getHistory: () => history.slice(), memInfo };
         })();
 
 
@@ -4552,6 +4669,10 @@ const WindowGeometry = (() => {
             function stop() { running = false; if (raf) cancelAnimationFrame(raf); }
             function list() { return [...peers.values()]; }
 
+            document.addEventListener("visibilitychange", () => {
+                if (document.hidden) stop();
+                else if (started) start();
+            });
             return { start, stop, list, join, leave, roster: () => ROSTER.slice() };
         })();
 
@@ -4572,9 +4693,12 @@ const WindowGeometry = (() => {
                 this._blobs = [];
                 this._w = 0;
                 this._h = 0;
+                this._ambientRunning = false;
+                this._ambientRaf = null;
                 this._resize();
                 window.addEventListener("resize", Utils.throttle(() => this._resize(), 150));
                 this._bindDesktopEvents();
+                document.addEventListener("visibilitychange", () => document.hidden ? this.stopAmbient() : this.startAmbient());
             }
             _resize() {
                 const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -4592,6 +4716,8 @@ const WindowGeometry = (() => {
                         class: "desktop-icon",
                         dataset: { id: app.id },
                         tabIndex: 0,
+                        role: "button",
+                        "aria-label": `Open ${app.title}`,
                         onClick: (e) => { e.stopPropagation();
                             this.select(app.id); },
                         onDblclick: () => AppRegistry.launch(app.id),
@@ -4641,17 +4767,29 @@ const WindowGeometry = (() => {
                     duration: 2200 });
             }
             startAmbient() {
+                if (this._ambientRunning || document.hidden) return;
                 const rnd = Utils.seededRandom(1337);
-                this._particles = Array.from({ length: 40 }, () => ({ x: rnd(), y: rnd(), z: 0.3 + rnd(), speed: 0.15 +
-                        rnd() * 0.3 }));
-                this._blobs = [
-                    { cx: 0.25, cy: 0.3, r: 0.34, hue: 220, speed: 0.00012, phase: 0 },
-                    { cx: 0.76, cy: 0.6, r: 0.4, hue: 172, speed: 0.00009, phase: 2.1 },
-                    { cx: 0.5, cy: 0.88, r: 0.3, hue: 268, speed: 0.00015, phase: 4.2 }
-                ];
-                const loop = (t) => { if (!document.hidden) this._draw(t);
-                    requestAnimationFrame(loop); };
-                requestAnimationFrame(loop);
+                if (!this._particles.length) {
+                    this._particles = Array.from({ length: 40 }, () => ({ x: rnd(), y: rnd(), z: 0.3 + rnd(), speed: 0.15 +
+                            rnd() * 0.3 }));
+                    this._blobs = [
+                        { cx: 0.25, cy: 0.3, r: 0.34, hue: 220, speed: 0.00012, phase: 0 },
+                        { cx: 0.76, cy: 0.6, r: 0.4, hue: 172, speed: 0.00009, phase: 2.1 },
+                        { cx: 0.5, cy: 0.88, r: 0.3, hue: 268, speed: 0.00015, phase: 4.2 }
+                    ];
+                }
+                this._ambientRunning = true;
+                const loop = (t) => {
+                    if (!this._ambientRunning) return;
+                    this._draw(t);
+                    this._ambientRaf = requestAnimationFrame(loop);
+                };
+                this._ambientRaf = requestAnimationFrame(loop);
+            }
+            stopAmbient() {
+                this._ambientRunning = false;
+                if (this._ambientRaf) cancelAnimationFrame(this._ambientRaf);
+                this._ambientRaf = null;
             }
             _draw(t) {
                 const ctx = this.ctx,
@@ -5212,10 +5350,19 @@ const WindowGeometry = (() => {
                     appId: id,
                     width: opts.width || def.width,
                     height: opts.height || def.height,
+                    x: Number.isFinite(opts.x) ? opts.x : undefined,
+                    y: Number.isFinite(opts.y) ? opts.y : undefined,
                     minWidth: def.minWidth,
                     minHeight: def.minHeight,
                     meta: def.meta || ""
                 });
+                if (!ViewportMode.isMobile() && (Number.isFinite(opts.x) || Number.isFinite(opts.y))) {
+                    const clamped = WindowGeometry.clampPosition({ x: win.x, y: win.y, w: win.w, boundsW: WindowManager.bounds.w, boundsH: WindowManager.bounds.h });
+                    win.x = clamped.x;
+                    win.y = clamped.y;
+                    win.el.style.left = win.x + "px";
+                    win.el.style.top = win.y + "px";
+                }
                 const api = {
                     win,
                     appId: id,
@@ -5226,6 +5373,7 @@ const WindowGeometry = (() => {
                     setMeta: (m) => { const el2 = win.titlebarEl.querySelector(".win-title-meta"); if (el2) el2
                             .textContent = m; },
                     close: () => WindowManager.close(win.id)
+                     ,payload: opts.payload || null
                 };
                 try { win.handle = def.mount(win.bodyEl, api) || null; } catch (e) {
                     Logger.error("AppRegistry", `mount() failed for "${id}": ${e?.message || e}`);
@@ -7372,12 +7520,16 @@ const WindowGeometry = (() => {
             const CATEGORY_MAP = { "window:open": "Windows", "window:close": "Windows", "window:focus": "Windows",
                 "window:minimize": "Windows", "window:maximize": "Windows", "window:resize": "Windows",
                 "app:launch": "Apps", "notify:push": "Notifications", "state:change": "State", "memory:saved": "Memory",
-                "log:new": "Logs" };
+                 "log:new": "Logs", "file:created": "Files", "file:updated": "Files", "file:deleted": "Files",
+                 "file:opened": "Files", "note:created": "Notes", "note:updated": "Notes", "note:deleted": "Notes",
+                 "todo:created": "Tasks", "todo:updated": "Tasks", "todo:completed": "Tasks", "todo:deleted": "Tasks",
+                 "todo:cleared": "Tasks", "terminal:command": "Terminal", "agenda:reminder": "Agenda" };
 
             function categoryOf(event) { return CATEGORY_MAP[event] || "Other"; }
 
             function iconOf(cat) { return { Windows: "windowIcon", Apps: "grid", Notifications: "bell", State: "sliders",
-                    Memory: "memory", Logs: "devconsole", Other: "activity" } [cat] || "activity"; }
+                    Memory: "memory", Logs: "devconsole", Files: "file", Notes: "note", Tasks: "todo", Terminal: "terminal",
+                    Agenda: "timeline", Other: "activity" } [cat] || "activity"; }
 
             function describePayload(p) {
                 if (!p) return "";
@@ -9353,6 +9505,13 @@ const WindowGeometry = (() => {
                 let cwd = "/home/user";
                 const cmdHistory = [];
                 let histIdx = -1;
+                const activeIntervals = new Set();
+                const trackedInterval = (fn, ms) => {
+                    const id = setInterval(fn, ms);
+                    activeIntervals.add(id);
+                    return id;
+                };
+                const workspacePath = (target) => resolvePath(cwd, target).replace(/^\/home\/user/, "") || "/";
 
                 const output = Utils.el("div", { class: "terminal-output" });
                 const inputWrap = Utils.el("div", { class: "terminal-input-wrap" });
@@ -9400,7 +9559,8 @@ const WindowGeometry = (() => {
                             ["neofetch","System information card"],["tree","Directory tree"],["env","Environment variables"],
                             ["history","Command history"],["calc <expr>","Evaluate math expression"],["banner <text>","ASCII banner"],
                             ["joke","Random joke"],["fortune","Words of wisdom"],["cowsay <text>","Cowsay art"],
-                            ["ping <host>","Ping a host"],["curl <url>","Fetch a URL (simulated)"],["man <cmd>","Manual for a command"],
+                            ["ping <host>","Ping a host"],["curl <url>","Fetch a URL (simulated)"],["open <path>","Open a workspace file"],
+                            ["write <path> <text>","Create or update a workspace file"],["todo [add]","List or add tasks"],["note","List notes"],["agenda","Show due tasks"],["man <cmd>","Manual for a command"],
                             ["matrix","Go full matrix"],["colors","Color palette test"],["alias","Show aliases"],
                             ["sl","Easter egg"],["exit","Close terminal window"]
                         ];
@@ -9450,10 +9610,58 @@ const WindowGeometry = (() => {
                     cat(args) {
                         if (!args[0]) { print("cat: missing file operand", COLORS.error); return; }
                         const target = resolvePath(cwd, args[0]);
+                        const workspaceFile = WorkspaceBridge.findFile({ path: workspacePath(args[0]) });
+                        if (workspaceFile) {
+                            (workspaceFile.content || "").split("\n").forEach(l => print(l, COLORS.info));
+                            return;
+                        }
                         const node = getNode(target);
                         if (!node) { print(`cat: ${args[0]}: No such file or directory`, COLORS.error); return; }
                         if (node.type === "dir") { print(`cat: ${args[0]}: Is a directory`, COLORS.error); return; }
                         (node.content || "").split("\n").forEach(l => print(l, COLORS.info));
+                    },
+                    open(args) {
+                        if (!args[0]) { print("Usage: open <file>", COLORS.warn); return; }
+                        const file = WorkspaceBridge.findFile({ path: workspacePath(args[0]) });
+                        if (!file) { print(`open: ${args[0]}: No workspace file found`, COLORS.error); return; }
+                        WorkspaceBridge.openFile(file);
+                        print(`Opened ${workspacePath(args[0])}`, COLORS.success);
+                    },
+                    write(args) {
+                        if (!args[0]) { print("Usage: write <path> <text>", COLORS.warn); return; }
+                        const target = workspacePath(args[0]);
+                        const value = args.slice(1).join(" ");
+                        const parts = target.split("/").filter(Boolean);
+                        const name = parts.pop() || "untitled.txt";
+                        const path = "/" + parts.join("/");
+                        const existing = WorkspaceBridge.findFile({ path: target });
+                        const file = existing ? WorkspaceBridge.updateFile(existing.id, { content: value, size: `${value.length} B` }) :
+                            WorkspaceBridge.createFile({ name, path, type: name.split(".").pop() || "txt", content: value });
+                        if (file) print(`${existing ? "Updated" : "Created"} ${target}`, COLORS.success);
+                    },
+                    todo(args) {
+                        if (args[0]?.toLowerCase() === "add") {
+                            const text = args.slice(1).join(" ").trim();
+                            if (!text) { print("Usage: todo add <task>", COLORS.warn); return; }
+                            const todo = { id: Utils.uid("todo"), text, done: false, priority: "medium", category: "", dueDate: null, ts: Date.now() };
+                            StateManager.set("todos2", [...(StateManager.get("todos2") || []), todo]);
+                            EventBus.emit("todo:created", { todo, source: "terminal" });
+                            print(`Added task: ${text}`, COLORS.success);
+                            return;
+                        }
+                        const todos = (StateManager.get("todos2") || []).filter(t => !t.done);
+                        if (!todos.length) { print("No active tasks.", COLORS.dim); return; }
+                        todos.forEach((todo, i) => print(`${i + 1}. ${todo.text}${todo.dueDate ? ` · due ${todo.dueDate}` : ""}`, COLORS.info));
+                    },
+                    note() {
+                        const notes = StateManager.get("notes3") || [];
+                        if (!notes.length) { print("No notes yet.", COLORS.dim); return; }
+                        notes.slice(0, 12).forEach((note, i) => print(`${i + 1}. ${note.title || "Untitled"}`, COLORS.info));
+                    },
+                    agenda() {
+                        const todos = (StateManager.get("todos2") || []).filter(t => !t.done && t.dueDate);
+                        if (!todos.length) { print("Agenda is clear — no active dated tasks.", COLORS.dim); return; }
+                        todos.sort((a, b) => a.dueDate.localeCompare(b.dueDate)).forEach(t => print(`${t.dueDate}  ${t.text}`, COLORS.info));
                     },
                     echo(args) { print(args.join(" "), COLORS.info); },
                     clear() { output.innerHTML = ""; },
@@ -9617,10 +9825,10 @@ const WindowGeometry = (() => {
                         const host = args[0] || "localhost";
                         printRaw(`<span style="color:${COLORS.info}">PING ${Utils.escapeHtml(host)}: 56 bytes of data</span>`);
                         let i = 0;
-                        const iv = setInterval(() => {
+                         const iv = trackedInterval(() => {
                             const ms = (Math.random() * 12 + 2).toFixed(3);
                             printRaw(`<span style="color:${COLORS.success}">64 bytes from ${Utils.escapeHtml(host)}: icmp_seq=${i} ttl=64 time=${ms} ms</span>`);
-                            if (++i >= 4) { clearInterval(iv); print(`--- ${host} ping statistics ---\n4 packets transmitted, 4 received, 0% packet loss`, COLORS.dim); }
+                             if (++i >= 4) { clearInterval(iv); activeIntervals.delete(iv); print(`--- ${host} ping statistics ---\n4 packets transmitted, 4 received, 0% packet loss`, COLORS.dim); }
                         }, 400);
                     },
                     curl(args) {
@@ -9665,11 +9873,11 @@ const WindowGeometry = (() => {
                         print("Entering the Matrix…", COLORS.success);
                         const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*アイウエオカキクケコ";
                         let count = 0;
-                        const iv = setInterval(() => {
+                         const iv = trackedInterval(() => {
                             let line = "";
                             for (let i = 0; i < 60; i++) line += `<span style="color:hsl(${120 + Math.random()*20},90%,${40 + Math.random()*30}%)">${chars[Math.floor(Math.random() * chars.length)]}</span>`;
                             printRaw(line);
-                            if (++count >= 20) { clearInterval(iv); print("Wake up, Neo…", COLORS.warn); }
+                             if (++count >= 20) { clearInterval(iv); activeIntervals.delete(iv); print("Wake up, Neo…", COLORS.warn); }
                         }, 60);
                     },
                     sl() { print("   o O        ___________", COLORS.warn); print("  _][_n_n_n_n_|  _________)", COLORS.warn); print(">(________|_______)|======|", COLORS.warn); print("  /oo OOOOO oo`  ooo  ooo", COLORS.warn); print("──────────────────────────"); print("  🚂 You typed 'sl' instead of 'ls'!", COLORS.warn); },
@@ -9693,6 +9901,7 @@ const WindowGeometry = (() => {
                     const args = parts.slice(1);
 
                     const fn = COMMANDS[command];
+                     EventBus.emit("terminal:command", { command, args, raw: cmd, cwd });
                     if (fn) {
                         fn(args);
                     } else {
@@ -9737,7 +9946,7 @@ const WindowGeometry = (() => {
                 print("", COLORS.dim);
 
                 inputEl.focus();
-                return { destroy() {} };
+                return { destroy() { activeIntervals.forEach((id) => clearInterval(id)); activeIntervals.clear(); } };
             }
             return { mount };
         })();
@@ -9967,9 +10176,10 @@ const WindowGeometry = (() => {
             const PRIORITIES = { high: { label: "High", color: "#E0708A" }, medium: { label: "Med", color: "#E0A94E" }, low: { label: "Low", color: "#57D9C4" } };
             const CATEGORIES = ["Work", "Personal", "Research", "Ideas", "Urgent"];
 
-            function mount(bodyEl) {
+            function mount(bodyEl, api = {}) {
                 let filter = "all";
                 let priorityFilter = "all";
+                let destroyed = false;
 
                 const taskInput = Utils.el("input", { class: "input", placeholder: "Add a new task…", style: { flex: "1" } });
                 const dueInput = Utils.el("input", { type: "date", class: "input", style: { width: "130px", flex: "none", fontSize: "11px" } });
@@ -10068,9 +10278,11 @@ const WindowGeometry = (() => {
                         if (dueDateStr) meta.appendChild(Utils.el("span", { style: { fontSize: "10px", color: isOverdue ? "#E0708A" : "var(--text-3)" } }, (isOverdue ? "⚠ " : "📅 ") + dueDateStr));
                         if (meta.children.length) textWrap.appendChild(meta);
 
-                        const del = Utils.el("button", { class: "btn btn-ghost btn-sm btn-icon", onClick: () => deleteTodo(todo.id), html: Icons.svg("trash", 12), style: { opacity: "0.5", flex: "none" } });
+                        const noteBtn = Utils.el("button", { class: "btn btn-ghost btn-sm btn-icon", title: "Convert to note", "aria-label": "Convert to note", onClick: () => convertToNote(todo), html: Icons.svg("note", 12), style: { opacity: "0.5", flex: "none" } });
+                        const del = Utils.el("button", { class: "btn btn-ghost btn-sm btn-icon", title: "Delete task", "aria-label": "Delete task", onClick: () => deleteTodo(todo.id), html: Icons.svg("trash", 12), style: { opacity: "0.5", flex: "none" } });
                         item.appendChild(check);
                         item.appendChild(textWrap);
+                        item.appendChild(noteBtn);
                         item.appendChild(del);
                         listWrap.appendChild(item);
                     });
@@ -10080,8 +10292,10 @@ const WindowGeometry = (() => {
                     const text = taskInput.value.trim();
                     if (!text) return;
                     const todos = getTodos();
-                    todos.push({ id: Utils.uid("todo"), text, done: false, priority: prioritySelect.value, category: catSelect.value, dueDate: dueInput.value || null, ts: Date.now() });
+                    const todo = { id: Utils.uid("todo"), text, done: false, priority: prioritySelect.value, category: catSelect.value, dueDate: dueInput.value || null, ts: Date.now() };
+                    todos.push(todo);
                     StateManager.set("todos2", todos);
+                    EventBus.emit("todo:created", { todo });
                     taskInput.value = ""; dueInput.value = ""; catSelect.value = "";
                     renderTodos();
                     NotificationCenter.push({ type: "success", title: "Task added", duration: 1200 });
@@ -10090,21 +10304,37 @@ const WindowGeometry = (() => {
                 function toggleTodo(id) {
                     const todos = getTodos();
                     const t = todos.find(t => t.id === id);
-                    if (t) { t.done = !t.done; t.completedAt = t.done ? Date.now() : null; StateManager.set("todos2", todos); renderTodos(); }
+                    if (t) {
+                        const previous = { ...t };
+                        t.done = !t.done; t.completedAt = t.done ? Date.now() : null;
+                        StateManager.set("todos2", todos);
+                        EventBus.emit(t.done ? "todo:completed" : "todo:updated", { todo: t, previous });
+                        renderTodos();
+                    }
                 }
 
                 function deleteTodo(id) {
+                    const previous = getTodos().find(t => t.id === id);
                     StateManager.set("todos2", getTodos().filter(t => t.id !== id));
+                    if (previous) EventBus.emit("todo:deleted", { todo: previous });
                     renderTodos();
                 }
 
                 function clearDone() {
+                    const removed = getTodos().filter(t => t.done);
                     StateManager.set("todos2", getTodos().filter(t => !t.done));
+                    if (removed.length) EventBus.emit("todo:cleared", { count: removed.length, todos: removed });
                     renderTodos();
+                }
+
+                function convertToNote(todo) {
+                    const note = WorkspaceBridge.createNoteFromTodo(todo);
+                    if (note) NotificationCenter.push({ type: "success", title: "Task converted to note", duration: 1400 });
                 }
 
                 addBtn.addEventListener("click", addTodo);
                 taskInput.addEventListener("keydown", (e) => { if (e.key === "Enter") addTodo(); });
+                const unsubscribe = StateManager.subscribe("todos2", () => { if (!destroyed) renderTodos(); });
                 renderTodos();
 
                 // Seed with sample tasks if empty
@@ -10115,10 +10345,88 @@ const WindowGeometry = (() => {
                         { text: "Write session notes", priority: "low", category: "Personal" },
                         { text: "Review Knowledge Graph connections", priority: "medium", category: "Work" },
                     ];
-                    StateManager.set("todos2", samples.map((s, i) => ({ ...s, id: Utils.uid("todo"), done: i === 2, ts: Date.now() - i * 86400000, dueDate: null })));
+                    const seeded = samples.map((s, i) => ({ ...s, id: Utils.uid("todo"), done: i === 2, ts: Date.now() - i * 86400000, dueDate: null }));
+                    StateManager.set("todos2", seeded);
+                    EventBus.emit("todo:seeded", { count: seeded.length });
                     renderTodos();
                 }
-                return { destroy() {} };
+                return { destroy() { destroyed = true; unsubscribe(); } };
+            }
+            return { mount };
+        })();
+
+
+        /* ==== js/apps/agenda.js ==== */
+        "use strict";
+        /******************************************************************
+         * [APP:AGENDA] — Due-date projection over the shared To-Do store
+         ******************************************************************/
+        const AgendaApp = (() => {
+            function dateKey(value) {
+                if (!value) return "no-date";
+                const date = new Date(`${value}T00:00:00`);
+                return Number.isNaN(date.getTime()) ? "no-date" : value;
+            }
+            function labelFor(key) {
+                if (key === "no-date") return "No due date";
+                const today = new Date();
+                const todayKey = today.toISOString().slice(0, 10);
+                const tomorrow = new Date(today);
+                tomorrow.setDate(today.getDate() + 1);
+                const tomorrowKey = tomorrow.toISOString().slice(0, 10);
+                if (key < todayKey) return "Overdue";
+                if (key === todayKey) return "Today";
+                if (key === tomorrowKey) return "Tomorrow";
+                return new Date(`${key}T00:00:00`).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+            }
+            function mount(bodyEl) {
+                let destroyed = false;
+                const summary = Utils.el("div", { class: "app-toolbar" });
+                const list = Utils.el("div", { class: "grow scroll-y", style: { padding: "10px 14px" } });
+                bodyEl.appendChild(Utils.el("div", { class: "app-root" }, [summary, list]));
+
+                function render() {
+                    if (destroyed) return;
+                    const todos = StateManager.get("todos2") || [];
+                    const active = todos.filter((todo) => !todo.done);
+                    const overdue = active.filter((todo) => todo.dueDate && dateKey(todo.dueDate) < new Date().toISOString().slice(0, 10)).length;
+                    summary.innerHTML = "";
+                    summary.appendChild(Utils.el("span", { class: "text-2", style: { fontWeight: "600" } }, "Agenda"));
+                    summary.appendChild(Utils.el("span", { class: "badge b-brass" }, `${active.length} active`));
+                    if (overdue) summary.appendChild(Utils.el("span", { class: "badge b-rose" }, `${overdue} overdue`));
+                    summary.appendChild(Utils.el("div", { class: "grow" }));
+                    summary.appendChild(Utils.el("button", { class: "btn btn-primary btn-sm", html: Icons.svg("todo", 12) + "<span>Open To-Do</span>", onClick: () => AppRegistry.launch("todo") }));
+                    list.innerHTML = "";
+                    const groups = {};
+                    todos.forEach((todo) => { const key = dateKey(todo.dueDate); (groups[key] ||= []).push(todo); });
+                    const keys = Object.keys(groups).sort((a, b) => a === "no-date" ? 1 : b === "no-date" ? -1 : a.localeCompare(b));
+                    if (!keys.length) {
+                        list.appendChild(Utils.el("div", { class: "empty-state" }, [
+                            Utils.el("div", { html: Icons.svg("timeline", 32) }),
+                            Utils.el("div", { class: "es-title" }, "Your agenda is clear"),
+                            Utils.el("div", { class: "es-sub" }, "Add due dates to tasks and they will appear here.")
+                        ]));
+                        return;
+                    }
+                    keys.forEach((key) => {
+                        const section = Utils.el("section", { style: { marginBottom: "16px" } });
+                        section.appendChild(Utils.el("div", { class: "section-label", style: { padding: "5px 0 7px" } }, labelFor(key)));
+                        groups[key].sort((a, b) => Number(a.done) - Number(b.done)).forEach((todo) => {
+                            const row = Utils.el("button", { class: "list-row", style: { width: "100%", textAlign: "left", opacity: todo.done ? "0.55" : "1" },
+                                onClick: () => { AppRegistry.launch("todo", { payload: { todoId: todo.id } }); } }, [
+                                Utils.el("span", { class: "todo-check" + (todo.done ? " done" : ""), html: todo.done ? Icons.svg("check", 11) : "" }),
+                                Utils.el("span", { class: "grow", style: { textDecoration: todo.done ? "line-through" : "none" } }, todo.text),
+                                todo.category ? Utils.el("span", { class: "badge" }, todo.category) : null,
+                                Utils.el("span", { class: "text-3 font-mono", style: { fontSize: "10px" } }, todo.priority || "medium")
+                            ].filter(Boolean));
+                            section.appendChild(row);
+                        });
+                        list.appendChild(section);
+                    });
+                }
+                render();
+                const unsubscribe = StateManager.subscribe("todos2", render);
+                return { destroy() { destroyed = true; unsubscribe(); } };
             }
             return { mount };
         })();
@@ -10398,8 +10706,8 @@ const WindowGeometry = (() => {
                     const virtItems = VIRTUAL_FS[currentPath] || [];
                     const userFiles = getFiles().filter(f => (f.path || "/Downloads") === currentPath);
                     const allFiles = [
-                        ...virtItems.filter(i => typeof i === "string").map(dir => ({ name: dir, type: "dir", isDir: true })),
-                        ...virtItems.filter(i => typeof i !== "string"),
+                        ...virtItems.filter(i => typeof i === "string").map(dir => ({ name: dir, type: "dir", isDir: true, _virtual: true })),
+                        ...virtItems.filter(i => typeof i !== "string").map(file => ({ ...file, _virtual: true })),
                         ...userFiles,
                     ];
                     if (!searchQuery) return allFiles;
@@ -10438,7 +10746,7 @@ const WindowGeometry = (() => {
                             if (item.isDir) { currentPath = (currentPath === "/" ? "" : currentPath) + "/" + item.name; selectedFile = null; renderGrid(); return; }
                             selectedFile = item; renderGrid(); renderPreview(item);
                         });
-                        card.addEventListener("dblclick", () => { if (!item.isDir && item.content) { AppRegistry.launch("notes"); } });
+                         card.addEventListener("dblclick", () => { if (!item.isDir && item.content) WorkspaceBridge.openFile(item); });
                         fileGrid.appendChild(card);
                     });
                     const total = items.filter(i => !i.isDir).length;
@@ -10459,8 +10767,11 @@ const WindowGeometry = (() => {
                         previewPanel.appendChild(Utils.el("div", { class: "fm-preview-content" }, Utils.escapeHtml(item.content)));
                     }
                     const actRow = Utils.el("div", { class: "col gap-2" });
+                     if (!item.isDir && item.content) {
+                         actRow.appendChild(Utils.el("button", { class: "btn btn-primary btn-sm", html: Icons.svg("open", 12) + "<span>Open in app</span>", onClick: () => WorkspaceBridge.openFile(item) }));
+                     }
                     if (!item._virtual) {
-                        actRow.appendChild(Utils.el("button", { class: "btn btn-danger btn-sm", html: Icons.svg("trash", 12) + "<span>Delete</span>", onClick: () => { setFiles(getFiles().filter(f => f.name !== item.name)); selectedFile = null; renderGrid(); renderPreview(null); } }));
+                         actRow.appendChild(Utils.el("button", { class: "btn btn-danger btn-sm", html: Icons.svg("trash", 12) + "<span>Delete</span>", onClick: () => { WorkspaceBridge.deleteFile(item.id); selectedFile = null; renderGrid(); renderPreview(null); } }));
                     }
                     previewPanel.appendChild(actRow);
                 }
@@ -10469,15 +10780,17 @@ const WindowGeometry = (() => {
                     const name = prompt("File name (e.g. notes.txt):");
                     if (!name || !name.trim()) return;
                     const ext = name.split(".").pop();
-                    const newFile = { id: Utils.uid("file"), name: name.trim(), type: ext, size: "0 KB", content: "", path: currentPath, modified: "Just now" };
-                    setFiles([...getFiles(), newFile]);
+                    const newFile = WorkspaceBridge.createFile({ name: name.trim(), type: ext, path: currentPath });
+                    if (!newFile) return;
                     renderGrid();
                     NotificationCenter.push({ type: "success", title: "File created", message: name, duration: 1500 });
                 }
 
+                let destroyed = false;
+                const unsubscribe = StateManager.subscribe("files", () => { if (!destroyed) renderGrid(); });
                 renderGrid();
                 renderPreview(null);
-                return { destroy() {} };
+                return { destroy() { destroyed = true; unsubscribe(); } };
             }
             return { mount };
         })();
@@ -10680,12 +10993,13 @@ const WindowGeometry = (() => {
                     .trim();
             }
 
-            function mount(bodyEl) {
+            function mount(bodyEl, api = {}) {
                 const noteList = Utils.el("div", { class: "grow scroll-y" });
                 let selectedNoteId = null;
                 let autoSaveTimer = null;
                 let previewMode = false;
                 let searchQuery = "";
+                let destroyed = false;
 
                 const searchInput = Utils.el("input", { class: "input", placeholder: "Search notes…", style: { flex: "1", fontSize: "11px" }, onInput: (e) => { searchQuery = e.target.value; renderNoteList(); } });
                 const newBtn = Utils.el("button", { class: "btn btn-primary btn-sm", html: Icons.svg("plus", 12) + "<span>New</span>", onClick: createNote });
@@ -10797,8 +11111,10 @@ const WindowGeometry = (() => {
                     const notes = getNotes();
                     const idx = notes.findIndex(n => n.id === id);
                     if (idx !== -1) {
+                        const previous = { ...notes[idx] };
                         notes[idx] = { ...notes[idx], ...patch, updatedAt: Date.now() };
                         saveTodos(notes);
+                        EventBus.emit("note:updated", { note: notes[idx], previous });
                         renderNoteList();
                     }
                 }
@@ -10808,6 +11124,7 @@ const WindowGeometry = (() => {
                     const n = { id: Utils.uid("note"), title: "New Note", content: "", pinned: false, tag: "", createdAt: Date.now(), updatedAt: Date.now() };
                     notes.unshift(n);
                     saveTodos(notes);
+                    EventBus.emit("note:created", { note: n });
                     selectedNoteId = n.id;
                     renderNoteList();
                     renderEditor();
@@ -10816,7 +11133,9 @@ const WindowGeometry = (() => {
                 }
 
                 function deleteNote(id) {
+                    const previous = getNotes().find(n => n.id === id);
                     saveTodos(getNotes().filter(n => n.id !== id));
+                    if (previous) EventBus.emit("note:deleted", { note: previous });
                     if (selectedNoteId === id) { selectedNoteId = null; }
                     renderNoteList();
                     renderEditor();
@@ -10833,7 +11152,10 @@ const WindowGeometry = (() => {
                 }
                 renderNoteList();
                 renderEditor();
-                return { destroy() { clearTimeout(autoSaveTimer); } };
+                const unsubscribe = StateManager.subscribe("notes3", () => {
+                    if (!destroyed) { renderNoteList(); renderEditor(); }
+                });
+                return { destroy() { destroyed = true; clearTimeout(autoSaveTimer); unsubscribe(); } };
             }
             return { mount };
         })();
@@ -11522,16 +11844,21 @@ console.log(\`Hello, \${hello}!\`);
 2. See the preview update live on the right
 3. Export your work when done`;
 
-            function mount(bodyEl) {
-                let content = StateManager.get("mdEditorContent") || STARTER;
+            function mount(bodyEl, api = {}) {
+                const payload = api.payload || {};
+                let currentFileId = payload.fileId || null;
+                let currentFilePath = payload.path || "/Documents/untitled.md";
+                let content = payload.content !== undefined ? String(payload.content) : (StateManager.get("mdEditorContent") || STARTER);
                 let autoSaveTimer = null;
 
                 const wordCountEl = Utils.el("span", { class: "md-word-count" });
                 const exportBtn = Utils.el("button", { class: "btn btn-ghost btn-sm", onClick: exportHtml }, "Export HTML");
+                const saveBtn = Utils.el("button", { class: "btn btn-primary btn-sm", html: Icons.svg("save", 12) + "<span>Save</span>", title: "Save to shared workspace", onClick: saveToWorkspace });
                 const toolbar = Utils.el("div", { class: "app-toolbar" }, [
-                    Utils.el("span", { class: "text-2", style: { fontSize: "12px", fontWeight: "600" } }, "Markdown Editor"),
+                    Utils.el("span", { class: "text-2", style: { fontSize: "12px", fontWeight: "600" } }, payload.path ? payload.path.split("/").pop() : "Markdown Editor"),
                     Utils.el("div", { class: "grow" }),
                     wordCountEl,
+                    saveBtn,
                     exportBtn,
                 ]);
 
@@ -11559,10 +11886,31 @@ console.log(\`Hello, \${hello}!\`);
                     wordCountEl.textContent = `${words}w · ${chars}c`;
                 }
 
+                function saveToWorkspace() {
+                    const value = textarea.value;
+                    if (currentFileId) {
+                        WorkspaceBridge.updateFile(currentFileId, { content: value, size: `${value.length} B` });
+                    } else {
+                        const parts = currentFilePath.split("/").filter(Boolean);
+                        const name = parts.pop() || "untitled.md";
+                        const file = WorkspaceBridge.createFile({ name, path: "/" + parts.join("/"), type: "md", content: value });
+                        if (file) {
+                            currentFileId = file.id;
+                            currentFilePath = WorkspaceBridge.normalizePath(file.path + "/" + file.name);
+                            api.setMeta?.("saved");
+                        }
+                    }
+                    StateManager.set("mdEditorContent", value);
+                    NotificationCenter.push({ type: "success", title: "Markdown saved", duration: 1200 });
+                }
+
                 textarea.addEventListener("input", () => {
                     updatePreview();
                     clearTimeout(autoSaveTimer);
-                    autoSaveTimer = setTimeout(() => StateManager.set("mdEditorContent", textarea.value), 500);
+                    autoSaveTimer = setTimeout(() => {
+                        StateManager.set("mdEditorContent", textarea.value);
+                        if (currentFileId) WorkspaceBridge.updateFile(currentFileId, { content: textarea.value, size: `${textarea.value.length} B` });
+                    }, 500);
                 });
 
                 textarea.addEventListener("keydown", (e) => {
@@ -12021,6 +12369,17 @@ console.log(\`Hello, \${hello}!\`);
             minWidth: 360,
             minHeight: 280,
             mount: TodoApp.mount
+        });
+        AppRegistry.register({
+            id: "agenda",
+            title: "Agenda",
+            icon: "timeline",
+            category: "Productivity",
+            width: 560,
+            height: 500,
+            minWidth: 380,
+            minHeight: 300,
+            mount: AgendaApp.mount
         });
         AppRegistry.register({
             id: "system-monitor",
