@@ -1,2 +1,3 @@
 - [TITAN Ω Architecture](titan-omega-arch.md) — single-file HTML app at artifacts/titan-omega/index.html (~12K lines); all edits go there via targeted Edit patches, never rewrite
 - [TITAN Ω Enhancement State](titan-omega-enhancements.md) — comprehensive v2 enhancement completed; all batches done
+- [TITAN Ω Window Lifecycle](titan-omega-lifecycle.md) — every app-owned timer, RAF, global listener, and EventBus subscription needs explicit window-close teardown

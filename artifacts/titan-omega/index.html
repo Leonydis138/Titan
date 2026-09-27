@@ -6261,11 +6261,18 @@ const WindowGeometry = (() => {
                     renderTree();
                     if (hits[0]) selectNode(hits[0].node);
                 }
-                searchInput.addEventListener("input", Utils.debounce((e) => runSearch(e.target.value), 150));
+                let searchTimer = null;
+                searchInput.addEventListener("input", (e) => {
+                    clearTimeout(searchTimer);
+                    searchTimer = setTimeout(() => {
+                        searchTimer = null;
+                        runSearch(e.target.value);
+                    }, 150);
+                });
 
                 renderTree();
                 renderDetail(dataRoot);
-                return { destroy() {} };
+                return { destroy() { clearTimeout(searchTimer); } };
             }
             return { mount };
         })();
@@ -6838,13 +6845,14 @@ const WindowGeometry = (() => {
                         canvas.style.cursor = hovered ? "pointer" : "grab";
                     }
                 });
-                window.addEventListener("pointerup", () => {
+                const onPointerUp = () => {
                     if (draggedNode) { const dn = draggedNode;
                         unpinTimer = setTimeout(() => { dn.pinned = false; }, 260);
                         draggedNode = null; }
                     dragging = false;
                     canvas.style.cursor = hovered ? "pointer" : "grab";
-                });
+                };
+                window.addEventListener("pointerup", onPointerUp);
                 canvas.addEventListener("wheel", (e) => {
                     e.preventDefault();
                     const before = screenToWorld(e.offsetX, e.offsetY);
@@ -6899,14 +6907,26 @@ const WindowGeometry = (() => {
                     }
                 }
 
-                searchInput.addEventListener("input", Utils.debounce((e) => { query = e.target.value; }, 100));
+                let searchTimer = null;
+                searchInput.addEventListener("input", (e) => {
+                    clearTimeout(searchTimer);
+                    searchTimer = setTimeout(() => {
+                        searchTimer = null;
+                        query = e.target.value;
+                    }, 100);
+                });
                 renderCategoryChips();
                 renderDetail();
                 loop();
 
-                return { destroy() { destroyed = true; if (raf) cancelAnimationFrame(raf); if (unpinTimer)
-                            clearTimeout(unpinTimer);
-                        ro.disconnect(); } };
+                return { destroy() {
+                        destroyed = true;
+                        if (raf) cancelAnimationFrame(raf);
+                        if (unpinTimer) clearTimeout(unpinTimer);
+                        clearTimeout(searchTimer);
+                        window.removeEventListener("pointerup", onPointerUp);
+                        ro.disconnect();
+                    } };
             }
             return { mount };
         })();
@@ -7371,7 +7391,8 @@ const WindowGeometry = (() => {
                 let mode = "longterm",
                     selectedId = null,
                     editing = false,
-                    destroyed = false;
+                    destroyed = false,
+                    focusTimer = null;
 
                 function renderTabs() {
                     tabs.innerHTML = "";
@@ -7472,7 +7493,11 @@ const WindowGeometry = (() => {
                                     renderMain(); } }, "Cancel")
                         ])
                     ]));
-                    setTimeout(() => titleInput.focus(), 10);
+                    clearTimeout(focusTimer);
+                    focusTimer = setTimeout(() => {
+                        focusTimer = null;
+                        if (!destroyed) titleInput.focus();
+                    }, 10);
                 }
 
                 function saveMemory(existing, title, content, tagsStr) {
@@ -7504,7 +7529,8 @@ const WindowGeometry = (() => {
                 renderAll();
                 const timer = setInterval(() => { if (!destroyed && mode === "working") renderList(); }, 2000);
                 return { destroy() { destroyed = true;
-                        clearInterval(timer); } };
+                        clearInterval(timer);
+                        clearTimeout(focusTimer); } };
             }
             return { mount };
         })();
@@ -7551,6 +7577,7 @@ const WindowGeometry = (() => {
 
                 let activeCats = new Set([...new Set(Object.values(CATEGORY_MAP)), "Other"]);
                 let destroyed = false;
+                let renderRaf = null;
 
                 function renderFilters() {
                     filterRow.innerHTML = "";
@@ -7815,7 +7842,9 @@ const WindowGeometry = (() => {
 
                     scroll.appendChild(grid);
 
-                    requestAnimationFrame(() => {
+                    renderRaf = requestAnimationFrame(() => {
+                        renderRaf = null;
+                        if (destroyed) return;
                         setupCanvas(fpsCanvas, (ctx, w, h) => ChartKit.lineChart(ctx, w, h, PerfMonitor.getHistory()
                             .map((f) => ({ value: f })), { stroke: "#57D9C4" }));
                         const cats = {};
@@ -7843,7 +7872,8 @@ const WindowGeometry = (() => {
                 render();
                 const timer = setInterval(() => { if (!destroyed) render(); }, 4000);
                 return { destroy() { destroyed = true;
-                        clearInterval(timer); } };
+                        clearInterval(timer);
+                        if (renderRaf) cancelAnimationFrame(renderRaf); } };
             }
             return { mount };
         })();
@@ -8076,12 +8106,15 @@ const WindowGeometry = (() => {
                 }
                 clearBtn.addEventListener("click", () => { Logger.clear();
                     renderLogs(); });
-                EventBus.on("log:new", () => renderLogs());
-                EventBus.on("log:clear", () => renderLogs());
+                const unsubscribeLogNew = EventBus.on("log:new", () => renderLogs());
+                const unsubscribeLogClear = EventBus.on("log:clear", () => renderLogs());
 
                 renderFilters();
                 renderLogs();
-                return { destroy() {} };
+                return { destroy() {
+                    unsubscribeLogNew();
+                    unsubscribeLogClear();
+                } };
             }
             return { mount };
         })();
@@ -8157,6 +8190,7 @@ const WindowGeometry = (() => {
 
                 const selfRow = makePeerRow(selfName, selfHue, true);
                 peerListEl.appendChild(selfRow.row);
+                const statusTimers = new Set();
 
                 function rebuildPeerRows() {
                     peerRows.forEach((v) => v.row.remove());
@@ -8172,9 +8206,17 @@ const WindowGeometry = (() => {
                 function flashDrawing(statusEl) {
                     statusEl.textContent = "drawing…";
                     statusEl.style.color = "var(--accent-bright)";
-                    clearTimeout(statusEl._t);
-                    statusEl._t = setTimeout(() => { statusEl.textContent = "idle";
-                        statusEl.style.color = ""; }, 1000);
+                    if (statusEl._t) {
+                        clearTimeout(statusEl._t);
+                        statusTimers.delete(statusEl._t);
+                    }
+                    statusEl._t = setTimeout(() => {
+                        statusTimers.delete(statusEl._t);
+                        statusEl._t = null;
+                        statusEl.textContent = "idle";
+                        statusEl.style.color = "";
+                    }, 1000);
+                    statusTimers.add(statusEl._t);
                 }
 
                 function pushStroke(s) {
@@ -8325,6 +8367,8 @@ const WindowGeometry = (() => {
                         if (raf) cancelAnimationFrame(raf);
                         ro.disconnect();
                         clearInterval(statusInterval);
+                        statusTimers.forEach((timer) => clearTimeout(timer));
+                        statusTimers.clear();
                         unsubs.forEach((fn) => fn());
                     }
                 };
@@ -8478,6 +8522,7 @@ const WindowGeometry = (() => {
                     visH = 0;
                 const visRo = Utils.observeCanvasResize(visCanvas, visCtx, (w, h) => { visW = w;
                     visH = h; });
+                let vizRaf = null;
 
                 function drawVis() {
                     if (destroyed) return;
@@ -8503,7 +8548,7 @@ const WindowGeometry = (() => {
                         visCtx.stroke();
                         visCtx.globalAlpha = 1;
                     }
-                    requestAnimationFrame(drawVis);
+                    vizRaf = requestAnimationFrame(drawVis);
                 }
 
                 let seqOn = new Set();
@@ -8657,7 +8702,10 @@ const WindowGeometry = (() => {
                 bodyEl.addEventListener("keydown", onKeyDown);
                 bodyEl.addEventListener("keyup", onKeyUp);
                 bodyEl.addEventListener("pointerdown", () => bodyEl.focus());
-                setTimeout(() => bodyEl.focus(), 50);
+                let focusTimer = setTimeout(() => {
+                    focusTimer = null;
+                    if (!destroyed) bodyEl.focus();
+                }, 50);
 
                 drawVis();
 
@@ -8666,10 +8714,12 @@ const WindowGeometry = (() => {
                         destroyed = true;
                         seqStop();
                         visRo.disconnect();
+                        if (vizRaf) cancelAnimationFrame(vizRaf);
+                        clearTimeout(focusTimer);
                         panic();
                         bodyEl.removeEventListener("keydown", onKeyDown);
                         bodyEl.removeEventListener("keyup", onKeyUp);
-                        if (actx) setTimeout(() => actx.close().catch(() => {}), 120);
+                        if (actx) actx.close().catch(() => {});
                     }
                 };
             }
@@ -8697,6 +8747,7 @@ const WindowGeometry = (() => {
                 let w = 0,
                     h = 0;
                 let destroyed = false;
+                let raf = null;
                 const bodyFont = getComputedStyle(document.body).fontFamily;
 
                 const canvas = Utils.el("canvas", { style: { width: "100%", height: "100%", display: "block",
@@ -8943,7 +8994,7 @@ const WindowGeometry = (() => {
                         ctx.font = "500 11px " + bodyFont;
                         ctx.fillText(n.label, p.x + r + 5, p.y + 4);
                     });
-                    requestAnimationFrame(render);
+                    raf = requestAnimationFrame(render);
                 }
 
                 const connectChip = Utils.el("div", { class: "chip", html: Icons.svg("nodeEditor", 13) +
@@ -8982,8 +9033,11 @@ const WindowGeometry = (() => {
 
                 render();
 
-                return { destroy() { destroyed = true;
-                        ro.disconnect(); } };
+                return { destroy() {
+                        destroyed = true;
+                        if (raf) cancelAnimationFrame(raf);
+                        ro.disconnect();
+                    } };
             }
             return { mount };
         })();
@@ -9243,6 +9297,7 @@ const WindowGeometry = (() => {
                 let display = "0";
                 let expression = "";
                 let justEvaluated = false;
+                let errorTimer = null;
 
                 function updateDisplay() {
                     const el = bodyEl.querySelector(".calc-display");
@@ -9272,7 +9327,7 @@ const WindowGeometry = (() => {
                         const num = parseFloat(display);
                         if (isNaN(num)) { display = "Error";
                             updateDisplay();
-                            setTimeout(clearAll, 1200); return; }
+                            scheduleClear(); return; }
                         let result;
                         switch (fn) {
                             case "sin":
@@ -9311,7 +9366,7 @@ const WindowGeometry = (() => {
                     } catch (e) {
                         display = "Error";
                         updateDisplay();
-                        setTimeout(clearAll, 1200);
+                        scheduleClear();
                     }
                 }
 
@@ -9320,6 +9375,14 @@ const WindowGeometry = (() => {
                     expression = "";
                     justEvaluated = false;
                     updateDisplay();
+                }
+
+                function scheduleClear() {
+                    clearTimeout(errorTimer);
+                    errorTimer = setTimeout(() => {
+                        errorTimer = null;
+                        clearAll();
+                    }, 1200);
                 }
 
                 function evaluate() {
@@ -9336,12 +9399,12 @@ const WindowGeometry = (() => {
                         } else {
                             display = "Error";
                             updateDisplay();
-                            setTimeout(clearAll, 1200);
+                            scheduleClear();
                         }
                     } catch (e) {
                         display = "Error";
                         updateDisplay();
-                        setTimeout(clearAll, 1200);
+                        scheduleClear();
                     }
                 }
 
@@ -9435,7 +9498,7 @@ const WindowGeometry = (() => {
                     displayEl,
                     grid
                 ]));
-                return { destroy() {} };
+                return { destroy() { clearTimeout(errorTimer); } };
             }
             return { mount };
         })();
@@ -10152,15 +10215,19 @@ const WindowGeometry = (() => {
                 canvas.addEventListener("pointerup", () => { drawing = false; snapshot = null; ctx.beginPath(); });
                 canvas.addEventListener("pointercancel", () => { drawing = false; });
 
-                document.addEventListener("keydown", (e) => {
+                const onKeyDown = (e) => {
                     if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
                     if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "z"))) { e.preventDefault(); redo(); }
-                });
+                };
+                document.addEventListener("keydown", onKeyDown);
 
                 const ro = Utils.observeCanvasResize(canvas, ctx, (cw, ch) => { w = cw; h = ch; if (showGrid) drawGrid(); });
                 canvas.style.cursor = "crosshair";
 
-                return { destroy() { ro.disconnect(); } };
+                return { destroy() {
+                    document.removeEventListener("keydown", onKeyDown);
+                    ro.disconnect();
+                } };
             }
             return { mount };
         })();
@@ -11982,6 +12049,10 @@ console.log(\`Hello, \${hello}!\`);
             function mount(bodyEl) {
                 const messages = StateManager.get("chatMessages") || [{ role: "ai", text: KB.greeting[0], ts: Date.now() }];
                 let typing = false;
+                let destroyed = false;
+                let responseTimer = null;
+                let typeInterval = null;
+                let typingEl = null;
 
                 const messagesEl = Utils.el("div", { class: "chat-messages" });
                 const inputEl = Utils.el("textarea", { class: "chat-input", placeholder: "Ask Cosmos anything…", rows: "1" });
@@ -12038,10 +12109,13 @@ console.log(\`Hello, \${hello}!\`);
                     addBubble("user", text, userMsg.ts);
                     inputEl.value = "";
                     typing = true;
-                    const typingEl = showTyping();
+                    typingEl = showTyping();
                     const delay = 600 + Math.random() * 900;
-                    setTimeout(() => {
+                    responseTimer = setTimeout(() => {
+                        responseTimer = null;
+                        if (destroyed) return;
                         typingEl.remove();
+                        typingEl = null;
                         const reply = respond(text);
                         const aiMsg = { role: "ai", text: reply, ts: Date.now() };
                         messages.push(aiMsg);
@@ -12049,10 +12123,15 @@ console.log(\`Hello, \${hello}!\`);
                         const { content } = addBubble("ai", "", aiMsg.ts);
                         content.textContent = "";
                         let i = 0;
-                        const typeInterval = setInterval(() => {
+                        typeInterval = setInterval(() => {
                             content.textContent += reply[i++];
                             messagesEl.scrollTop = messagesEl.scrollHeight;
-                            if (i >= reply.length) { clearInterval(typeInterval); typing = false; StateManager.set("chatMessages", messages); }
+                            if (i >= reply.length) {
+                                clearInterval(typeInterval);
+                                typeInterval = null;
+                                typing = false;
+                                StateManager.set("chatMessages", messages);
+                            }
                         }, 18);
                     }, delay);
                 }
@@ -12061,7 +12140,18 @@ console.log(\`Hello, \${hello}!\`);
                 sendBtn.addEventListener("click", sendMessage);
 
                 renderAll();
-                return { destroy() {} };
+                return { destroy() {
+                    destroyed = true;
+                    clearTimeout(responseTimer);
+                    responseTimer = null;
+                    clearInterval(typeInterval);
+                    typeInterval = null;
+                    if (typingEl) {
+                        typingEl.remove();
+                        typingEl = null;
+                    }
+                    typing = false;
+                } };
             }
             return { mount };
         })();
