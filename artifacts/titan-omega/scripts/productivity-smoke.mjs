@@ -136,6 +136,78 @@ async function main() {
             StateManager.set("files", []);
             StateManager.set("mdEditorContent", "");
 
+            const initialWallpaperStyle = StateManager.get("wallpaperStyle");
+            const initialReduceMotion = StateManager.get("reduceMotion");
+            StateManager.set("wallpaperStyle", "matrix-rain");
+            const settingsWin = AppRegistry.launch("settings");
+            const wallpaperSelect = settingsWin.bodyEl.querySelector("select.select");
+            assertPage(wallpaperSelect?.options.length === TITAN_CONFIG.wallpaperStyles.length,
+                "Settings does not expose every wallpaper style");
+            assertPage(wallpaperSelect.value === "matrix-rain",
+                "Settings wallpaper selection does not reflect the active style");
+            wallpaperSelect.value = "plasma";
+            wallpaperSelect.dispatchEvent(new Event("input", { bubbles: true }));
+            assertPage(StateManager.get("wallpaperStyle") === "plasma", "Wallpaper selection did not update shared state");
+            await closeAll();
+            StateManager.set("wallpaperStyle", initialWallpaperStyle);
+
+            StateManager.set("reduceMotion", true);
+            const simWin = AppRegistry.launch("simlab");
+            const simCanvas = simWin.bodyEl.querySelector("canvas");
+            const playButton = simWin.bodyEl.querySelector(".split-side button");
+            assertPage(playButton?.disabled, "Simulation should start paused when Reduce Motion is enabled");
+            const simContext = simCanvas?.getContext("2d");
+            assertPage(simContext, "Simulation canvas could not be initialized");
+            const nativeFillRect = simContext.fillRect.bind(simContext);
+            let simulationPaints = 0;
+            simContext.fillRect = (...args) => {
+                simulationPaints++;
+                return nativeFillRect(...args);
+            };
+            await wait(250);
+            const reducedMotionPaints = simulationPaints;
+            await wait(150);
+            assertPage(simulationPaints === reducedMotionPaints,
+                "Reduced-motion simulation continued repainting while paused");
+            StateManager.set("reduceMotion", false);
+            await wait(30);
+            const resumedPlayButton = simWin.bodyEl.querySelector(".split-side button");
+            assertPage(resumedPlayButton && !resumedPlayButton.disabled,
+                "Simulation controls did not unlock when Reduce Motion was disabled");
+            resumedPlayButton.click();
+            await wait(220);
+            const paintsBeforeMinimize = simulationPaints;
+            assertPage(paintsBeforeMinimize > reducedMotionPaints, "Simulation did not animate after pressing Play");
+            WindowManager.minimize(simWin.id);
+            await wait(220);
+            const paintsAfterMinimize = simulationPaints;
+            await wait(180);
+            assertPage(simulationPaints === paintsAfterMinimize,
+                "Minimized simulation continued repainting in the background");
+            WindowManager.restore(simWin.id);
+            await wait(220);
+            assertPage(simulationPaints > paintsAfterMinimize,
+                "Simulation did not resume after its window was restored");
+            await closeAll();
+            StateManager.set("reduceMotion", initialReduceMotion);
+
+            const graphWin = AppRegistry.launch("graph-builder");
+            const graphCanvas = graphWin.bodyEl.querySelector("canvas");
+            const graphContext = graphCanvas?.getContext("2d");
+            assertPage(graphContext, "Graph Builder canvas could not be initialized");
+            const nativeClearRect = graphContext.clearRect.bind(graphContext);
+            let graphPaints = 0;
+            graphContext.clearRect = (...args) => {
+                graphPaints++;
+                return nativeClearRect(...args);
+            };
+            await wait(160);
+            const settledGraphPaints = graphPaints;
+            await wait(200);
+            assertPage(graphPaints === settledGraphPaints,
+                "Empty Graph Builder continued repainting after its initial draw");
+            await closeAll();
+
             const todoWin = AppRegistry.launch("todo");
             const todoRoot = todoWin.bodyEl;
             const taskInput = todoRoot.querySelector('input[placeholder="Add a new task…"]');

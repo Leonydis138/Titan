@@ -3313,10 +3313,12 @@
              */
             function observeCanvasResize(canvas, ctx, onResize) {
                 function apply() {
-                    const dpr = Math.min(window.devicePixelRatio || 1, 2);
                     const rect = canvas.getBoundingClientRect();
                     const w = Math.max(1, rect.width),
                         h = Math.max(1, rect.height);
+                    const dpr = Math.min(window.devicePixelRatio || 1,
+                        ViewportMode.isMobile() ? 1.25 : 1.75,
+                        Math.sqrt(8000000 / (w * h)));
                     canvas.width = Math.round(w * dpr);
                     canvas.height = Math.round(h * dpr);
                     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -3325,7 +3327,92 @@
                 const ro = new ResizeObserver(apply);
                 ro.observe(canvas);
                 apply();
-                return ro;
+                const offViewport = ViewportMode.onChange(apply);
+                let disconnected = false;
+                return { disconnect() {
+                    if (disconnected) return;
+                    disconnected = true;
+                    ro.disconnect();
+                    offViewport();
+                } };
+            }
+
+            /**
+             * Schedule canvas work only while its view is visible. Continuous
+             * scenes are frame-capped; static scenes can invalidate on changes.
+             */
+            function createCanvasLoop(canvas, render, { continuous = true, fps = null } = {}) {
+                let running = false,
+                    destroyed = false,
+                    dirty = true,
+                    inView = true,
+                    raf = null,
+                    lastFrame = 0;
+                const ownerWindow = canvas.closest(".titan-window");
+                const frameRate = () => typeof fps === "function" ? fps() : fps ||
+                    (ViewportMode.isMobile() ? 24 : 40);
+                const cancelFrame = () => {
+                    if (raf !== null) cancelAnimationFrame(raf);
+                    raf = null;
+                };
+                const canRender = () => running && !destroyed && !document.hidden && inView &&
+                    !ownerWindow?.classList.contains("win-anim-min") &&
+                    canvas.isConnected && canvas.getBoundingClientRect().width > 0 &&
+                    canvas.getBoundingClientRect().height > 0;
+                const schedule = () => {
+                    if (raf !== null || !canRender()) return;
+                    raf = requestAnimationFrame((t) => {
+                        raf = null;
+                        if (!canRender()) return;
+                        const interval = 1000 / Math.max(1, frameRate());
+                        if (dirty || (continuous && t - lastFrame >= interval)) {
+                            render(t);
+                            dirty = false;
+                            lastFrame = t;
+                        }
+                        if (continuous) schedule();
+                    });
+                };
+                const onVisibilityChange = () => {
+                    if (document.hidden) cancelFrame();
+                    else { dirty = true; schedule(); }
+                };
+                const onWindowStateChange = () => {
+                    dirty = true;
+                    if (ownerWindow?.classList.contains("win-anim-min")) cancelFrame();
+                    else schedule();
+                };
+                document.addEventListener("visibilitychange", onVisibilityChange);
+                const offMinimize = ownerWindow ? EventBus.on("window:minimize", onWindowStateChange) : null;
+                const offFocus = ownerWindow ? EventBus.on("window:focus", onWindowStateChange) : null;
+                const observer = typeof IntersectionObserver === "function" ?
+                    new IntersectionObserver((entries) => {
+                        const entry = entries[entries.length - 1];
+                        inView = !!entry?.isIntersecting;
+                        if (!inView) { dirty = true; cancelFrame(); }
+                        else schedule();
+                    }) : null;
+                observer?.observe(canvas);
+                return {
+                    start() { if (destroyed) return; running = true; dirty = true; schedule(); },
+                    stop() { running = false; cancelFrame(); },
+                    invalidate() { dirty = true; schedule(); },
+                    setContinuous(value) {
+                        continuous = !!value;
+                        if (continuous) schedule();
+                        else if (dirty) schedule();
+                    },
+                    destroy() {
+                        if (destroyed) return;
+                        destroyed = true;
+                        running = false;
+                        cancelFrame();
+                        observer?.disconnect();
+                        document.removeEventListener("visibilitychange", onVisibilityChange);
+                        offMinimize?.();
+                        offFocus?.();
+                    }
+                };
             }
 
             return {
@@ -3350,7 +3437,8 @@
                 EASING,
                 fuzzyScore,
                 copyToClipboard,
-                observeCanvasResize
+                observeCanvasResize,
+                createCanvasLoop
             };
         })();
 
@@ -4694,15 +4782,34 @@ const WindowGeometry = (() => {
                 this._w = 0;
                 this._h = 0;
                 this._ambientRunning = false;
-                this._ambientRaf = null;
+                this._ambientLoop = null;
+                this._constellationCache = null;
+                this._geometricParticles = null;
+                this._plasmaPalette = null;
                 this._resize();
-                window.addEventListener("resize", Utils.throttle(() => this._resize(), 150));
+                window.addEventListener("resize", Utils.throttle(() => {
+                    this._resize();
+                    this._ambientLoop?.invalidate();
+                }, 150));
                 this._bindDesktopEvents();
-                document.addEventListener("visibilitychange", () => document.hidden ? this.stopAmbient() : this.startAmbient());
+                this._ambientLoop = Utils.createCanvasLoop(this.canvas, (t) => this._draw(t), {
+                    fps: () => ViewportMode.isMobile() ? 24 : 40
+                });
+                ViewportMode.onChange(() => {
+                    this._resize();
+                    this._ambientLoop.invalidate();
+                });
+                StateManager.subscribe("reduceMotion", (reduced) => {
+                    this._ambientLoop.setContinuous(!reduced);
+                    this._ambientLoop.invalidate();
+                });
+                StateManager.subscribe("wallpaperStyle", () => this._ambientLoop.invalidate());
             }
             _resize() {
-                const dpr = Math.min(window.devicePixelRatio || 1, 2);
                 const rect = this.canvas.getBoundingClientRect();
+                const dpr = Math.min(window.devicePixelRatio || 1,
+                    ViewportMode.isMobile() ? 1.25 : 1.75,
+                    Math.sqrt(8000000 / Math.max(1, rect.width * rect.height)));
                 this.canvas.width = Math.max(1, Math.round(rect.width * dpr));
                 this.canvas.height = Math.max(1, Math.round(rect.height * dpr));
                 this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -4767,7 +4874,7 @@ const WindowGeometry = (() => {
                     duration: 2200 });
             }
             startAmbient() {
-                if (this._ambientRunning || document.hidden) return;
+                if (this._ambientRunning) return;
                 const rnd = Utils.seededRandom(1337);
                 if (!this._particles.length) {
                     this._particles = Array.from({ length: 40 }, () => ({ x: rnd(), y: rnd(), z: 0.3 + rnd(), speed: 0.15 +
@@ -4779,17 +4886,12 @@ const WindowGeometry = (() => {
                     ];
                 }
                 this._ambientRunning = true;
-                const loop = (t) => {
-                    if (!this._ambientRunning) return;
-                    this._draw(t);
-                    this._ambientRaf = requestAnimationFrame(loop);
-                };
-                this._ambientRaf = requestAnimationFrame(loop);
+                this._ambientLoop.setContinuous(!StateManager.get("reduceMotion"));
+                this._ambientLoop.start();
             }
             stopAmbient() {
                 this._ambientRunning = false;
-                if (this._ambientRaf) cancelAnimationFrame(this._ambientRaf);
-                this._ambientRaf = null;
+                this._ambientLoop.stop();
             }
             _draw(t) {
                 const ctx = this.ctx,
@@ -4877,24 +4979,33 @@ const WindowGeometry = (() => {
             }
             _drawConstellation(ctx, w, h, t) {
                 const reduced = StateManager.get("reduceMotion");
-                const rnd = Utils.seededRandom(42);
-                const stars = Array.from({ length: 120 }, () => ({ x: rnd() * w, y: rnd() * h, r: rnd() * 1.6 + 0.3, s: rnd() * 0.3 + 0.05 }));
+                if (!this._constellationCache || this._constellationCache.w !== w ||
+                    this._constellationCache.h !== h) {
+                    const rnd = Utils.seededRandom(42);
+                    const stars = Array.from({ length: ViewportMode.isMobile() ? 72 : 120 }, () => ({
+                        x: rnd() * w, y: rnd() * h, r: rnd() * 1.6 + 0.3, s: rnd() * 0.3 + 0.05
+                    }));
+                    const edges = [];
+                    for (let i = 0; i < stars.length; i++) {
+                        for (let j = i + 1; j < stars.length; j++) {
+                            const dx = stars[i].x - stars[j].x, dy = stars[i].y - stars[j].y;
+                            const dist = Math.hypot(dx, dy);
+                            if (dist < 100) edges.push({ i, j, alpha: (1 - dist / 100) * 0.3 });
+                        }
+                    }
+                    this._constellationCache = { w, h, stars, edges };
+                }
+                const { stars, edges } = this._constellationCache;
                 const time = reduced ? 0 : t * 0.00015;
                 // Draw constellation lines
                 ctx.strokeStyle = "rgba(201,164,104,0.06)";
                 ctx.lineWidth = 0.8;
-                for (let i = 0; i < stars.length; i++) {
-                    for (let j = i + 1; j < stars.length; j++) {
-                        const dx = stars[i].x - stars[j].x, dy = stars[i].y - stars[j].y;
-                        const dist = Math.sqrt(dx * dx + dy * dy);
-                        if (dist < 100) {
-                            ctx.beginPath();
-                            ctx.globalAlpha = (1 - dist / 100) * 0.3;
-                            ctx.moveTo(stars[i].x, stars[i].y);
-                            ctx.lineTo(stars[j].x, stars[j].y);
-                            ctx.stroke();
-                        }
-                    }
+                for (const edge of edges) {
+                    ctx.beginPath();
+                    ctx.globalAlpha = edge.alpha;
+                    ctx.moveTo(stars[edge.i].x, stars[edge.i].y);
+                    ctx.lineTo(stars[edge.j].x, stars[edge.j].y);
+                    ctx.stroke();
                 }
                 ctx.globalAlpha = 1;
                 // Draw stars with twinkling
@@ -4951,16 +5062,22 @@ const WindowGeometry = (() => {
             _drawPlasma(ctx, w, h, t) {
                 const reduced = StateManager.get("reduceMotion");
                 const time = reduced ? 0 : t * 0.0006;
-                const imageData = ctx.createImageData(Math.floor(w / 2), Math.floor(h / 2));
+                const scale = ViewportMode.isMobile() ? 3 : 2;
+                const imageData = ctx.createImageData(Math.max(1, Math.floor(w / scale)),
+                    Math.max(1, Math.floor(h / scale)));
                 const data = imageData.data;
-                const W = Math.floor(w / 2), H = Math.floor(h / 2);
+                const W = imageData.width, H = imageData.height;
+                if (!this._plasmaPalette) {
+                    this._plasmaPalette = Array.from({ length: 256 }, (_, i) => {
+                        const n = i / 255;
+                        return hslToRgbLocal(n, 0.7, 0.15 + n * 0.15);
+                    });
+                }
                 for (let y = 0; y < H; y++) {
                     for (let x = 0; x < W; x++) {
                         const v = Math.sin(x * 0.08 + time) + Math.sin(y * 0.06 + time * 0.7) + Math.sin((x + y) * 0.05 + time * 1.1) + Math.sin(Math.sqrt((x - W/2) ** 2 + (y - H/2) ** 2) * 0.1 - time);
                         const n = (v + 4) / 8;
-                        const h2 = (n * 360) | 0;
-                        const s = 0.7, l = 0.15 + n * 0.15;
-                        const [r, g, b] = Utils.hslToRgb ? Utils.hslToRgb(h2 / 360, s, l) : hslToRgbLocal(h2 / 360, s, l);
+                        const [r, g, b] = this._plasmaPalette[Utils.clamp((n * 255) | 0, 0, 255)];
                         const i = (y * W + x) * 4;
                         data[i] = r; data[i+1] = g; data[i+2] = b; data[i+3] = 200;
                     }
@@ -5007,12 +5124,21 @@ const WindowGeometry = (() => {
                     ctx.stroke();
                 }
                 // Floating particles
-                const rnd = Utils.seededRandom(99);
-                for (let i = 0; i < 60; i++) {
-                    const angle = rnd() * Math.PI * 2 + time * (0.1 + rnd() * 0.2);
-                    const dist = rnd() * Math.min(w, h) * 0.45;
+                if (!this._geometricParticles) {
+                    const rnd = Utils.seededRandom(99);
+                    this._geometricParticles = Array.from({ length: 60 }, () => ({
+                        angle: rnd() * Math.PI * 2,
+                        distance: rnd() * 0.45,
+                        speed: 0.1 + rnd() * 0.2,
+                        phase: rnd() * Math.PI * 2
+                    }));
+                }
+                for (let i = 0; i < this._geometricParticles.length; i++) {
+                    const p = this._geometricParticles[i];
+                    const angle = p.angle + time * p.speed;
+                    const dist = p.distance * Math.min(w, h);
                     const x = cx + Math.cos(angle) * dist, y = cy + Math.sin(angle) * dist;
-                    const alpha = 0.15 + Math.sin(time * 2 + i) * 0.1;
+                    const alpha = 0.15 + Math.sin(time * 2 + p.phase) * 0.1;
                     ctx.fillStyle = i % 3 === 0 ? `rgba(201,164,104,${alpha})` : i % 3 === 1 ? `rgba(87,217,196,${alpha})` : `rgba(139,133,224,${alpha})`;
                     ctx.beginPath();
                     ctx.arc(x, y, 1.5, 0, Math.PI * 2);
@@ -5557,13 +5683,26 @@ const WindowGeometry = (() => {
                 this._panMode = false;
                 this._draggedDistance = 0;
                 this._destroyed = false;
-                this._raf = null;
+                this._renderLoop = null;
                 this._w = 0;
                 this._h = 0;
                 this.canvas.style.cursor = "grab";
                 this._bind();
                 this._ro = Utils.observeCanvasResize(this.canvas, this.ctx, (w, h) => { this._w = w;
-                    this._h = h; });
+                    this._h = h;
+                    this._renderLoop?.invalidate(); });
+                this._renderLoop = Utils.createCanvasLoop(this.canvas, (t) => {
+                    if (StateManager.get("reduceMotion")) {
+                        this.camera.target = { ...this.camera.desiredTarget };
+                    } else this.camera.update();
+                    this._render(t);
+                    if (StateManager.get("reduceMotion")) this._renderLoop.setContinuous(false);
+                }, { continuous: !StateManager.get("reduceMotion"),
+                    fps: () => ViewportMode.isMobile() ? 20 : 30 });
+                this._offMotion = StateManager.subscribe("reduceMotion", (reduced) => {
+                    this._renderLoop.setContinuous(!reduced);
+                    this._renderLoop.invalidate();
+                });
             }
 
             setScene({ nodes, edges, cameraStart }) {
@@ -5578,6 +5717,7 @@ const WindowGeometry = (() => {
                     this.camera.target = { x: 0, y: 0, z: 0 };
                     this.camera.desiredTarget = { x: 0, y: 0, z: 0 };
                 }
+                this._renderLoop?.invalidate();
             }
             _byId(id) { return this._nodeById.get(id); }
 
@@ -5597,6 +5737,7 @@ const WindowGeometry = (() => {
                     downY = e.clientY;
                     this.canvas.style.cursor = "grabbing";
                     c.setPointerCapture?.(e.pointerId);
+                    this._renderLoop?.invalidate();
                 };
                 this._onMove = (e) => {
                     this._draggedDistance = Math.hypot(e.clientX - downX, e.clientY - downY);
@@ -5630,13 +5771,16 @@ const WindowGeometry = (() => {
                     } else {
                         this._updateHover(e);
                     }
+                    this._renderLoop?.invalidate();
                 };
                 this._onUp = () => { this._dragging = false;
-                    this.canvas.style.cursor = this.hoverNode ? "pointer" : "grab"; };
+                    this.canvas.style.cursor = this.hoverNode ? "pointer" : "grab";
+                    this._renderLoop?.invalidate(); };
                 this._onWheel = (e) => {
                     e.preventDefault();
                     this.camera.radius = Utils.clamp(this.camera.radius * (1 + e.deltaY * 0.001), this.camera.minR,
                         this.camera.maxR);
+                    this._renderLoop?.invalidate();
                 };
                 this._onClick = (e) => {
                     if (this._draggedDistance > 4) return;
@@ -5644,6 +5788,7 @@ const WindowGeometry = (() => {
                     this.selectedNode = hit;
                     this.onSelect?.(hit);
                     if (hit) this.camera.desiredTarget = { x: hit.x, y: hit.y, z: hit.z };
+                    this._renderLoop?.invalidate();
                 };
                 c.addEventListener("pointerdown", this._onDown);
                 c.addEventListener("pointermove", this._onMove);
@@ -5682,6 +5827,7 @@ const WindowGeometry = (() => {
                 this.camera.theta = cameraStart?.theta ?? 0.6;
                 this.camera.phi = cameraStart?.phi ?? 1.15;
                 this.camera.desiredTarget = { x: 0, y: 0, z: 0 };
+                this._renderLoop?.invalidate();
             }
             focusNode(id) {
                 const n = this._byId(id);
@@ -5689,26 +5835,21 @@ const WindowGeometry = (() => {
                 this.selectedNode = n;
                 this.camera.desiredTarget = { x: n.x, y: n.y, z: n.z };
                 this.onSelect?.(n);
+                this._renderLoop?.invalidate();
             }
 
             start() {
-                const loop = () => {
-                    if (this._destroyed) return;
-                    this.camera.update();
-                    this._render();
-                    this._raf = requestAnimationFrame(loop);
-                };
-                this._raf = requestAnimationFrame(loop);
+                this._renderLoop.start();
             }
 
-            _render() {
+            _render(timestamp = performance.now()) {
                 const ctx = this.ctx,
                     w = this._w,
                     h = this._h;
                 if (w === 0 || h === 0) return;
                 ctx.clearRect(0, 0, w, h);
                 const cam = this.camera,
-                    t = performance.now() * 0.001;
+                    t = StateManager.get("reduceMotion") ? 0 : timestamp * 0.001;
                 for (const n of this.nodes) n._proj = project3D(n, cam, w, h);
                 const items = [];
                 for (const e of this.edges) {
@@ -5782,7 +5923,8 @@ const WindowGeometry = (() => {
 
             destroy() {
                 this._destroyed = true;
-                if (this._raf) cancelAnimationFrame(this._raf);
+                this._renderLoop?.destroy();
+                this._offMotion?.();
                 this._ro.disconnect();
                 window.removeEventListener("pointerup", this._onUp);
             }
@@ -6587,6 +6729,8 @@ const WindowGeometry = (() => {
             step() {
                 if (this.settled) return;
                 const nodes = this.nodes;
+                if (!nodes.length) { this.settled = true;
+                    return; }
                 for (let i = 0; i < nodes.length; i++) {
                     for (let j = i + 1; j < nodes.length; j++) {
                         const a = nodes[i],
@@ -6696,7 +6840,8 @@ const WindowGeometry = (() => {
                     Utils.el("div", { class: "grow" }),
                     Utils.el("button", { class: "btn btn-sm btn-ghost", html: Icons.svg("refresh", 13) +
                             "<span>Re-layout</span>", onClick: () => { layout.settled = false;
-                            layout._iter = 0; } })
+                            layout._iter = 0;
+                            invalidateRender(); } })
                 ]);
                 const categoryRow = Utils.el("div", { class: "row gap-2", style: { padding: "8px 12px", borderBottom: "1px solid var(--hairline)",
                         flexWrap: "wrap", flex: "none" } });
@@ -6714,13 +6859,19 @@ const WindowGeometry = (() => {
                     hovered = null,
                     query = "";
                 let activeCategories = new Set(KnowledgeData.categories);
-                let raf = null,
-                    destroyed = false,
+                let destroyed = false,
                     w = 0,
-                    h = 0;
+                    h = 0,
+                    renderLoop = null;
 
                 const ro = Utils.observeCanvasResize(canvas, ctx, (cw, ch) => { w = cw;
-                    h = ch; });
+                    h = ch;
+                    invalidateRender(); });
+
+                function invalidateRender() {
+                    renderLoop?.setContinuous(!layout.settled);
+                    renderLoop?.invalidate();
+                }
 
                 function renderCategoryChips() {
                     categoryRow.innerHTML = "";
@@ -6728,7 +6879,8 @@ const WindowGeometry = (() => {
                         const active = activeCategories.has(cat);
                         categoryRow.appendChild(Utils.el("div", { class: "chip" + (active ? " active" : ""),
                             onClick: () => { active ? activeCategories.delete(cat) : activeCategories.add(cat);
-                                renderCategoryChips(); } }, [
+                                renderCategoryChips();
+                                invalidateRender(); } }, [
                             Utils.el("span", { class: "dot-sm", style: { background: Utils.hsl(Utils.hashToHue(
                                     cat), 65, 55, 1) } }), cat
                         ]));
@@ -6795,10 +6947,10 @@ const WindowGeometry = (() => {
                     }
                 }
 
-                function loop() { if (destroyed) return;
-                    layout.step();
+                function renderFrame() { if (destroyed) return;
+                    if (!layout.settled) layout.step();
                     draw();
-                    raf = requestAnimationFrame(loop); }
+                    if (layout.settled) renderLoop?.setContinuous(false); }
 
                 let dragging = false,
                     draggedNode = null,
@@ -6826,6 +6978,7 @@ const WindowGeometry = (() => {
                         hit.pinned = true;
                         canvas.style.cursor = "grabbing"; } else { dragging = true;
                         canvas.style.cursor = "grabbing"; }
+                    invalidateRender();
                 });
                 canvas.addEventListener("pointermove", (e) => {
                     moved += Math.abs(e.movementX || 0) + Math.abs(e.movementY || 0);
@@ -6835,6 +6988,8 @@ const WindowGeometry = (() => {
                         draggedNode.y = world.y;
                         draggedNode.vx = 0;
                         draggedNode.vy = 0;
+                        layout.settled = false;
+                        layout._iter = 0;
                     } else if (dragging) {
                         cam.x -= (e.clientX - lastX) / cam.zoom;
                         cam.y -= (e.clientY - lastY) / cam.zoom;
@@ -6844,13 +6999,18 @@ const WindowGeometry = (() => {
                         hovered = pickNode(screenToWorld(e.offsetX, e.offsetY));
                         canvas.style.cursor = hovered ? "pointer" : "grab";
                     }
+                    invalidateRender();
                 });
                 const onPointerUp = () => {
                     if (draggedNode) { const dn = draggedNode;
-                        unpinTimer = setTimeout(() => { dn.pinned = false; }, 260);
+                        unpinTimer = setTimeout(() => { dn.pinned = false;
+                            layout.settled = false;
+                            layout._iter = 0;
+                            invalidateRender(); }, 260);
                         draggedNode = null; }
                     dragging = false;
                     canvas.style.cursor = hovered ? "pointer" : "grab";
+                    invalidateRender();
                 };
                 window.addEventListener("pointerup", onPointerUp);
                 canvas.addEventListener("wheel", (e) => {
@@ -6860,12 +7020,14 @@ const WindowGeometry = (() => {
                     const after = screenToWorld(e.offsetX, e.offsetY);
                     cam.x += before.x - after.x;
                     cam.y += before.y - after.y;
+                    invalidateRender();
                 }, { passive: false });
                 canvas.addEventListener("click", (e) => { if (moved > 5) return;
                     selectNode(pickNode(screenToWorld(e.offsetX, e.offsetY))); });
 
                 function selectNode(n) { selected = n;
-                    renderDetail(); }
+                    renderDetail();
+                    invalidateRender(); }
 
                 function renderDetail() {
                     detail.innerHTML = "";
@@ -6913,15 +7075,20 @@ const WindowGeometry = (() => {
                     searchTimer = setTimeout(() => {
                         searchTimer = null;
                         query = e.target.value;
+                        invalidateRender();
                     }, 100);
                 });
                 renderCategoryChips();
                 renderDetail();
-                loop();
+                renderLoop = Utils.createCanvasLoop(canvas, renderFrame, {
+                    fps: () => ViewportMode.isMobile() ? 20 : 30
+                });
+                renderLoop.setContinuous(true);
+                renderLoop.start();
 
                 return { destroy() {
                         destroyed = true;
-                        if (raf) cancelAnimationFrame(raf);
+                        renderLoop.destroy();
                         if (unpinTimer) clearTimeout(unpinTimer);
                         clearTimeout(searchTimer);
                         window.removeEventListener("pointerup", onPointerUp);
@@ -7281,11 +7448,15 @@ const WindowGeometry = (() => {
                 ];
                 let current = PRESETS[0],
                     sim = current.make(),
-                    playing = true,
-                    raf = null,
+                    playing = !StateManager.get("reduceMotion"),
                     destroyed = false,
                     speed = 1,
-                    frameAccum = 0;
+                    frameAccum = 0,
+                    lastFrameAt = 0,
+                    frameLoop = null;
+                function animationActive() {
+                    return playing && !StateManager.get("reduceMotion");
+                }
 
                 function renderTabs() {
                     tabs.innerHTML = "";
@@ -7298,7 +7469,11 @@ const WindowGeometry = (() => {
 
                 function switchPreset(p) { current = p;
                     sim = p.make();
-                    playing = true;
+                    playing = !StateManager.get("reduceMotion");
+                    frameAccum = 0;
+                    lastFrameAt = 0;
+                    frameLoop?.setContinuous(animationActive());
+                    frameLoop?.invalidate();
                     renderTabs();
                     renderControls(); }
 
@@ -7306,11 +7481,19 @@ const WindowGeometry = (() => {
                     controls.innerHTML = "";
                     controls.appendChild(Utils.el("div", { class: "row gap-2", style: { marginBottom: "16px" } }, [
                         Utils.el("button", { class: "btn btn-sm" + (playing ? " btn-primary" : ""), style: { flex: "1" },
+                            disabled: StateManager.get("reduceMotion"),
+                            title: StateManager.get("reduceMotion") ?
+                                "Turn off Reduce Motion in Settings to animate simulations." : "",
                             html: Icons.svg(playing ? "pause" : "play", 12) +
                             `<span>${playing ? "Pause" : "Play"}</span>`, onClick: () => { playing = !playing;
+                                frameLoop?.setContinuous(animationActive());
+                                frameLoop?.invalidate();
                                 renderControls(); } }),
                         Utils.el("button", { class: "btn btn-sm btn-icon", html: Icons.svg("refresh", 13),
-                            onClick: () => { sim = current.make(); } })
+                            onClick: () => { sim = current.make();
+                                frameAccum = 0;
+                                lastFrameAt = 0;
+                                frameLoop?.invalidate(); } })
                     ]));
                     controls.appendChild(fieldRow("Speed", makeSlider(speed, 0.25, 3, 0.25, (v) => { speed = v; })));
                     if (current.id === "boids") {
@@ -7321,10 +7504,14 @@ const WindowGeometry = (() => {
                                 .params.g = v; })));
                     } else if (current.id === "life") {
                         controls.appendChild(Utils.el("div", { class: "row gap-2" }, [
-                            Utils.el("button", { class: "btn btn-sm", style: { flex: "1" }, onClick: () => sim
-                                    .randomize() }, "Randomize"),
-                            Utils.el("button", { class: "btn btn-sm", style: { flex: "1" }, onClick: () => sim
-                                    .clear() }, "Clear")
+                            Utils.el("button", { class: "btn btn-sm", style: { flex: "1" }, onClick: () => {
+                                    sim.randomize();
+                                    frameLoop?.invalidate();
+                                } }, "Randomize"),
+                            Utils.el("button", { class: "btn btn-sm", style: { flex: "1" }, onClick: () => {
+                                    sim.clear();
+                                    frameLoop?.invalidate();
+                                } }, "Clear")
                         ]));
                         controls.appendChild(Utils.el("div", { class: "text-3", style: { fontSize: "11px",
                                 marginTop: "12px", lineHeight: "1.5" } },
@@ -7346,23 +7533,38 @@ const WindowGeometry = (() => {
                     const cw = w / sim.cols,
                         ch = h / sim.rows;
                     sim.toggle(Math.floor((e.clientX - rect.left) / cw), Math.floor((e.clientY - rect.top) / ch));
+                    frameLoop?.invalidate();
                 });
 
                 let frameCount = 0;
 
-                function loop() {
+                function renderFrame(t) {
                     if (destroyed) return;
-                    if (playing) { frameAccum += speed; while (frameAccum >= 1) { sim.step(w, h);
+                    const elapsed = lastFrameAt ? Math.min(2, (t - lastFrameAt) / (1000 / 60)) : 1;
+                    lastFrameAt = t;
+                    if (animationActive()) { frameAccum += speed * elapsed; while (frameAccum >= 1) { sim.step(w, h);
                             frameAccum -= 1; } }
                     sim.draw(ctx, w, h);
                     if (frameCount++ % 12 === 0) statBadge.textContent = sim.statLabel;
-                    raf = requestAnimationFrame(loop);
                 }
 
+                frameLoop = Utils.createCanvasLoop(canvas, renderFrame, {
+                    fps: () => ViewportMode.isMobile() ? 20 : 30
+                });
+                frameLoop.setContinuous(animationActive());
                 renderTabs();
                 renderControls();
-                loop();
-                return { destroy() { destroyed = true; if (raf) cancelAnimationFrame(raf);
+                frameLoop.start();
+                const offMotion = StateManager.subscribe("reduceMotion", (reduced) => {
+                    if (reduced) playing = false;
+                    lastFrameAt = 0;
+                    frameLoop.setContinuous(animationActive());
+                    frameLoop.invalidate();
+                    renderControls();
+                });
+                return { destroy() { destroyed = true;
+                        offMotion();
+                        frameLoop.destroy();
                         ro.disconnect(); } };
             }
             return { mount };
@@ -8159,6 +8361,7 @@ const WindowGeometry = (() => {
                 const canvasWrap = Utils.el("div", { class: "split-main", style: { position: "relative" } }, [canvas]);
 
                 const peerRows = new Map();
+                let renderLoop = null;
                 const peerListEl = Utils.el("div", { class: "col gap-1", style: { padding: "6px 8px" } });
                 const sideEl = Utils.el("div", { class: "split-side scroll-y", style: { width: "222px" } }, [
                     Utils.el("div", { class: "text-3", style: { fontSize: "10px", letterSpacing: ".07em",
@@ -8274,14 +8477,12 @@ const WindowGeometry = (() => {
                     });
                 }
 
-                let raf = null;
-
-                function loop() { if (destroyed) return;
-                    render();
-                    raf = requestAnimationFrame(loop); }
-
                 const ro = Utils.observeCanvasResize(canvas, ctx, (cw, ch) => { w = cw;
-                    h = ch; });
+                    h = ch;
+                    renderLoop?.invalidate(); });
+                renderLoop = Utils.createCanvasLoop(canvas, render, {
+                    fps: () => ViewportMode.isMobile() ? 20 : 30
+                });
 
                 function nPoint(e) {
                     const r = canvas.getBoundingClientRect();
@@ -8293,15 +8494,18 @@ const WindowGeometry = (() => {
                     drawing = true;
                     liveStroke = { points: [nPoint(e)], color: selfColor, width: brushSize };
                     flashDrawing(selfRow.statusEl);
+                    renderLoop.invalidate();
                 });
                 canvas.addEventListener("pointermove", (e) => {
                     if (!drawing || !liveStroke) return;
                     liveStroke.points.push(nPoint(e));
+                    renderLoop.invalidate();
                 });
                 function endStroke() {
                     if (drawing && liveStroke && liveStroke.points.length > 1) pushStroke(liveStroke);
                     drawing = false;
                     liveStroke = null;
+                    renderLoop.invalidate();
                 }
                 canvas.addEventListener("pointerup", endStroke);
                 canvas.addEventListener("pointercancel", endStroke);
@@ -8328,7 +8532,8 @@ const WindowGeometry = (() => {
                     Utils.el("div", { class: "grow" }),
                     Utils.el("span", { class: "badge b-cyan" }, "SIMULATED"),
                     Utils.el("button", { class: "btn btn-ghost btn-sm", onClick: () => { strokes = [];
-                            liveStroke = null; } }, "Clear Canvas")
+                            liveStroke = null;
+                            renderLoop.invalidate(); } }, "Clear Canvas")
                 ]);
 
                 const statusbar = Utils.el("div", { class: "app-statusbar" });
@@ -8357,14 +8562,15 @@ const WindowGeometry = (() => {
                     addPeerStroke(d.hue, d.x, d.y);
                     const r = peerRows.get(d.id);
                     if (r) flashDrawing(r.statusEl);
+                    renderLoop.invalidate();
                 }));
 
-                loop();
+                renderLoop.start();
 
                 return {
                     destroy() {
                         destroyed = true;
-                        if (raf) cancelAnimationFrame(raf);
+                        renderLoop.destroy();
                         ro.disconnect();
                         clearInterval(statusInterval);
                         statusTimers.forEach((timer) => clearTimeout(timer));
@@ -8747,7 +8953,7 @@ const WindowGeometry = (() => {
                 let w = 0,
                     h = 0;
                 let destroyed = false;
-                let raf = null;
+                let renderLoop = null;
                 const bodyFont = getComputedStyle(document.body).fontFamily;
 
                 const canvas = Utils.el("canvas", { style: { width: "100%", height: "100%", display: "block",
@@ -8755,12 +8961,17 @@ const WindowGeometry = (() => {
                 const ctx = canvas.getContext("2d");
                 const canvasWrap = Utils.el("div", { class: "split-main", style: { position: "relative" } }, [canvas]);
                 const ro = Utils.observeCanvasResize(canvas, ctx, (cw, ch) => { w = cw;
-                    h = ch; });
+                    h = ch;
+                    renderLoop?.invalidate(); });
 
                 const sideEl = Utils.el("div", { class: "split-side scroll-y", style: { width: "230px" } });
 
                 function worldToScreen(n) { return { x: w / 2 + n.x, y: h / 2 + n.y }; }
                 function screenToWorld(sx, sy) { return { x: sx - w / 2, y: sy - h / 2 }; }
+                function invalidateRender() {
+                    renderLoop?.setContinuous(!layout.settled);
+                    renderLoop?.invalidate();
+                }
                 function nodeAt(sx, sy) {
                     const wp = screenToWorld(sx, sy);
                     let best = null,
@@ -8774,7 +8985,8 @@ const WindowGeometry = (() => {
                 }
 
                 function select(id) { selectedId = id;
-                    renderSide(); }
+                    renderSide();
+                    invalidateRender(); }
 
                 function addNodeAt(sx, sy) {
                     const wp = screenToWorld(sx, sy);
@@ -8786,6 +8998,7 @@ const WindowGeometry = (() => {
                     n.y = wp.y;
                     select(id);
                     updateStatus();
+                    invalidateRender();
                 }
                 function deleteNode(id) {
                     layout.removeNode(id);
@@ -8793,9 +9006,11 @@ const WindowGeometry = (() => {
                     if (pendingConnectFrom === id) pendingConnectFrom = null;
                     renderSide();
                     updateStatus();
+                    invalidateRender();
                 }
                 function deleteEdge(e) { layout.removeEdge(e.a, e.b);
-                    updateStatus(); }
+                    updateStatus();
+                    invalidateRender(); }
 
                 function newGraph() {
                     layout = new ForceLayout2D([], []);
@@ -8804,6 +9019,7 @@ const WindowGeometry = (() => {
                     nodeCounter = 0;
                     renderSide();
                     updateStatus();
+                    invalidateRender();
                 }
                 function loadGraph(saved) {
                     const nodeDefs = saved.nodes.map((n) => ({ id: n.id, label: n.label, hue: n.hue }));
@@ -8818,6 +9034,7 @@ const WindowGeometry = (() => {
                     nodeCounter = saved.nodes.length;
                     renderSide();
                     updateStatus();
+                    invalidateRender();
                 }
                 function saveAs() {
                     if (!layout.nodes.length) { NotificationCenter.push({ type: "warning", title: "Nothing to save",
@@ -8847,18 +9064,22 @@ const WindowGeometry = (() => {
                             "Selected Node"));
                         sideEl.appendChild(Utils.el("input", { type: "text", class: "input", value: n.label,
                             style: { margin: "0 12px 12px", width: "calc(100% - 24px)" }, onInput: (e) => { n
-                                .label = e.target.value || "Untitled"; } }));
+                                .label = e.target.value || "Untitled";
+                                invalidateRender(); } }));
                         sideEl.appendChild(Utils.el("div", { class: "text-3", style: { fontSize: "10px",
                                 padding: "0 12px 6px" } }, "Color"));
                         sideEl.appendChild(Utils.el("div", { class: "row gap-1", style: { padding: "0 12px 14px",
                                 flexWrap: "wrap" } }, HUES.map((hue) => Utils.el("button", { class: "color-swatch" +
                                 (n.hue === hue ? " active" : ""), style: { background: `hsl(${hue} 70% 55%)` },
                             onClick: () => { n.hue = hue;
-                                renderSide(); } }))));
+                                renderSide();
+                                invalidateRender(); } }))));
                         sideEl.appendChild(Utils.el("div", { class: "row gap-2", style: { padding: "0 12px" } }, [
                             Utils.el("button", { class: "btn btn-sm", onClick: () => { n.pinned = !n.pinned;
                                     layout.settled = false;
-                                    renderSide(); } }, n.pinned ? "Unpin" : "Pin"),
+                                    layout._iter = 0;
+                                    renderSide();
+                                    invalidateRender(); } }, n.pinned ? "Unpin" : "Pin"),
                             Utils.el("button", { class: "btn btn-danger btn-sm", onClick: () => deleteNode(n.id) },
                                 "Delete")
                         ]));
@@ -8903,8 +9124,11 @@ const WindowGeometry = (() => {
                         if (n) { const wp = screenToWorld(lastPointer.x, lastPointer.y);
                             n.x = wp.x;
                             n.y = wp.y;
-                            layout.settled = false; }
+                            layout.settled = false;
+                            layout._iter = 0;
+                            invalidateRender(); }
                     }
+                    if (connectMode && pendingConnectFrom && !dragId) invalidateRender();
                 });
                 canvas.addEventListener("pointerdown", (e) => {
                     const r = canvas.getBoundingClientRect();
@@ -8919,6 +9143,7 @@ const WindowGeometry = (() => {
                                 updateStatus();
                             } else pendingConnectFrom = hit.id;
                         } else pendingConnectFrom = null;
+                        invalidateRender();
                         return;
                     }
                     if (hit) {
@@ -8929,8 +9154,10 @@ const WindowGeometry = (() => {
                     } else {
                         addNodeAt(sx, sy);
                     }
+                    invalidateRender();
                 });
-                const endDrag = () => { dragId = null; };
+                const endDrag = () => { dragId = null;
+                    invalidateRender(); };
                 canvas.addEventListener("pointerup", endDrag);
                 canvas.addEventListener("pointercancel", endDrag);
                 canvas.addEventListener("contextmenu", (e) => {
@@ -8949,7 +9176,7 @@ const WindowGeometry = (() => {
                     ]);
                 });
 
-                function render() {
+                function renderFrame() {
                     if (destroyed) return;
                     if (!layout.settled) layout.step();
                     ctx.clearRect(0, 0, w, h);
@@ -8994,21 +9221,24 @@ const WindowGeometry = (() => {
                         ctx.font = "500 11px " + bodyFont;
                         ctx.fillText(n.label, p.x + r + 5, p.y + 4);
                     });
-                    raf = requestAnimationFrame(render);
+                    if (layout.settled) renderLoop?.setContinuous(false);
                 }
 
                 const connectChip = Utils.el("div", { class: "chip", html: Icons.svg("nodeEditor", 13) +
                         "<span>Connect</span>", onClick: (e) => { connectMode = !connectMode;
                         pendingConnectFrom = null;
                         e.currentTarget.classList.toggle("active", connectMode);
-                        canvas.style.cursor = connectMode ? "pointer" : "crosshair"; } });
+                        canvas.style.cursor = connectMode ? "pointer" : "crosshair";
+                        invalidateRender(); } });
                 const toolbar = Utils.el("div", { class: "app-toolbar" }, [
                     Utils.el("button", { class: "btn btn-sm", onClick: newGraph }, "New"),
                     Utils.el("button", { class: "btn btn-sm", onClick: saveAs }, "Save As…"),
                     connectChip,
                     Utils.el("button", { class: "btn btn-ghost btn-sm", onClick: () => { layout.nodes.forEach((n) => n
                             .pinned = false);
-                        layout.settled = false; } }, "Unpin All"),
+                        layout.settled = false;
+                        layout._iter = 0;
+                        invalidateRender(); } }, "Unpin All"),
                     Utils.el("div", { class: "grow" }),
                     Utils.el("div", { class: "text-3", style: { fontSize: "10.5px" } },
                         "Click empty canvas to add · right-click to delete")
@@ -9031,11 +9261,15 @@ const WindowGeometry = (() => {
                     ])])
                 ]));
 
-                render();
+                renderLoop = Utils.createCanvasLoop(canvas, renderFrame, {
+                    fps: () => ViewportMode.isMobile() ? 20 : 30
+                });
+                renderLoop.setContinuous(true);
+                renderLoop.start();
 
                 return { destroy() {
                         destroyed = true;
-                        if (raf) cancelAnimationFrame(raf);
+                        renderLoop.destroy();
                         ro.disconnect();
                     } };
             }
@@ -9097,6 +9331,12 @@ const WindowGeometry = (() => {
                     ]));
 
                 // Window & Performance
+                const wallpaperStyleSelect = Utils.el("select", { class: "select",
+                    onInput: (e) => StateManager.set("wallpaperStyle", e.target.value) },
+                    TITAN_CONFIG.wallpaperStyles.map((style) => Utils.el("option", { value: style },
+                        style.split("-").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ")))
+                );
+                wallpaperStyleSelect.value = StateManager.get("wallpaperStyle");
                 scroll.appendChild(section("Performance & Rendering", "Control window transparency and rendering quality.",
                     [
                         Utils.el("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" } }, [
@@ -9109,12 +9349,7 @@ const WindowGeometry = (() => {
                             ]),
                             Utils.el("div", {}, [Utils.el("div", { class: "text-3", style: { fontSize: "10.5px",
                                         marginBottom: "6px" } }, "Wallpaper Style"),
-                                Utils.el("select", { class: "select", onInput: (e) => StateManager.set(
-                                        "wallpaperStyle", e.target.value) }, [
-                                    Utils.el("option", { value: "nebula" }, "Nebula"),
-                                    Utils.el("option", { value: "grid-field" }, "Grid Field"),
-                                    Utils.el("option", { value: "aurora" }, "Aurora")
-                                ])
+                                wallpaperStyleSelect
                             ])
                         ])
                     ]));
@@ -12304,6 +12539,17 @@ console.log(\`Hello, \${hello}!\`);
             minWidth: 500,
             minHeight: 380,
             mount: KnowledgeGraphApp.mount
+        });
+        AppRegistry.register({
+            id: "graph-builder",
+            title: "Graph Builder",
+            icon: "nodeEditor",
+            category: "Explorer",
+            width: 900,
+            height: 640,
+            minWidth: 560,
+            minHeight: 380,
+            mount: GraphBuilderApp.mount
         });
         AppRegistry.register({
             id: "viz3d",
